@@ -1,0 +1,15 @@
+services:
+  spec-workflow-mcp:
+    build: .
+    ports:
+      - "${DASHBOARD_PORT:-3000}:${DASHBOARD_PORT:-3000}"
+    volumes:
+      - "${SPEC_WORKFLOW_PATH:-./workspace}:/workspace:rw"
+    environment:
+      - DASHBOARD_PORT=${DASHBOARD_PORT:-3000}
+      - DASHBOARD_HOST=0.0.0.0
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    restart: unless-stopped
