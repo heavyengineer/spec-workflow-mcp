@@ -48,23 +48,6 @@ For example, if my username is `steev` and i'm working on the greatest tabletop 
 - All capabilities are dropped with `--cap-drop ALL` to minimize the attack surface.
 - The `.spec-workflow` directory is mounted with read and write permissions for configuration and state management. This same configuration is used for the MCP server and the Dashboard.
 
-## Podman Configuration
-
-Just replace `docker` with `podman` in the above configuration to use Podman as the container runtime. Podman is a rootless container engine that you might want to use if the rootless security model is a better fit for your environment.
-
-e.g.
-
-```json
-{
-    "mcpServers": {
-      "spec-workflow": {
-        "command": "podman",
-        "args": [...]
-      }
-    }
-  }
-```
-
 ## Dashboard
 
 If you're not using the vscode extension, you can run the dashboard in a separate container using docker-compose or direct from the command line or podman.
@@ -89,29 +72,6 @@ DASHBOARD_PORT=3456 SPEC_WORKFLOW_PATH=/home/username/project docker-compose up 
 
 The dashboard should now be available at `http://localhost:3000` or `http://localhost:3456` if you changed the port.
 
-
-### Podman
-
-export environment variables:
-
-```zsh
-export DASHBOARD_PORT=3456
-export SPEC_WORKFLOW_PATH=/home/username/project
-```
-
-```zsh
-
-podman run --rm \
-  --name spec-workflow-mcp-dashboard \
-  -p "${DASHBOARD_PORT:-3000}:${DASHBOARD_PORT:-3000}" \
-  -v "${SPEC_WORKFLOW_PATH}:/workspace:rw" \
-  -e DASHBOARD_HOST="${DASHBOARD_HOST:-0.0.0.0}" \
-  --security-opt no-new-privileges \
-  --cap-drop ALL \
-   spec-workflow-mcp:latest \
-  /workspace --dashboard --port "${DASHBOARD_PORT:-3000}"
-
-```
 
 ### why all the ports?
 
