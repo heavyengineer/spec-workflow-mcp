@@ -24,8 +24,14 @@ COPY --from=builder /app/src/dashboard/public ./src/dashboard/public
 
 RUN mkdir -p /workspace
 
+# Change ownership of the app directory to the node user (uid=1000)
+RUN chown -R node:node /app /workspace
+
+# Switch to the node user to match host user permissions
+USER node
+
 WORKDIR /workspace
 
 EXPOSE 3000
 
-CMD node /app/dist/index.js /workspace --dashboard --port ${DASHBOARD_PORT:-3000}
+CMD node /app/dist/index.js ${SPEC_WORKFLOW_PATH:-/workspace} --dashboard --port ${DASHBOARD_PORT:-3000}

@@ -8,8 +8,4 @@ services:
     environment:
       - DASHBOARD_PORT=${DASHBOARD_PORT:-3000}
       - DASHBOARD_HOST=0.0.0.0
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
     restart: no

@@ -23,8 +23,9 @@ Add the following to the .mcp.json file in the root of your your project directo
         "command": "docker",
         "args": [
           "run", "--rm", "-i",
-          "-v", "/home/username/project/.spec-workflow:/home/username/project/.spec-workflow:Z",
-           "--security-opt", "no-new-privileges",
+          "-v", "/home/username/project/.spec-workflow:/home/username/project/.spec-workflow:rw",
+          "--user", "1000:1000",
+          "--security-opt", "no-new-privileges",
           "--cap-drop", "ALL",
           "--entrypoint=node",
           "spec-workflow-mcp:latest",
@@ -38,9 +39,35 @@ Add the following to the .mcp.json file in the root of your your project directo
 
 ## Configuration
 
-This mounts your project directory into the container at `/home/username/project` you must change `username` and `project` to your actual username and project directory name.
+This mounts your project's `.spec-workflow` directory into the container at the same path as your host system. You must change `/home/username/project` to your actual project directory path in **both** the volume mount and the command argument.
 
-For example, if my username is `steev` and i'm working on the greatest tabletop gaming news site in the world, my path might look likes this: `/home/steev/tabletopsentinel.com`. The key is to make sure that the docker container has the same internal path as your host system so that any file paths referenced within the MCP server configuration will be valid.  The software will expect to find the `.spec-workflow` directory in the root of your project directory. You may need to create it if it doesn't already exist.
+For example, if my username is `steev` and I'm working on the greatest tabletop gaming news site in the world, my configuration would be:
+
+```json
+{
+    "mcpServers": {
+      "spec-workflow": {
+        "command": "docker",
+        "args": [
+          "run", "--rm", "-i",
+          "-v", "/home/steev/tabletopsentinel.com/.spec-workflow:/home/steev/tabletopsentinel.com/.spec-workflow:rw",
+          "--user", "1000:1000",
+          "--security-opt", "no-new-privileges",
+          "--cap-drop", "ALL",
+          "--entrypoint=node",
+          "spec-workflow-mcp:latest",
+          "/app/dist/index.js", "/home/steev/tabletopsentinel.com"
+        ]
+      }
+    }
+}
+```
+
+**Key points:**
+- The container uses the **same paths** as your host system - this is critical for MCP server functionality
+- Only the `.spec-workflow` directory needs to be mounted (not the entire project)
+- The `--user node` flag ensures the container runs with the same UID (1000) as most host users, fixing permission issues
+- The software will expect to find the `.spec-workflow` directory in your project root. You may need to create it if it doesn't already exist.
 
 ### Security considerations
 
