@@ -26,6 +26,6 @@ RUN mkdir -p /workspace
 
 WORKDIR /workspace
 
-# Use ENTRYPOINT for flexibility
-ENTRYPOINT ["node", "/app/dist/index.js"]
-CMD ["/workspace", "--dashboard", "--port", "3000"]
+EXPOSE 3000
+
+CMD node /app/dist/index.js /workspace --dashboard --port ${DASHBOARD_PORT:-3000}

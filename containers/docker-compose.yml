@@ -4,7 +4,7 @@ services:
     ports:
       - "${DASHBOARD_PORT:-3000}:${DASHBOARD_PORT:-3000}"
     volumes:
-      - "${SPEC_WORKFLOW_PATH:-./workspace}:/workspace:rw"
+      - "${SPEC_WORKFLOW_PATH:-./workspace}/.spec-workflow:/workspace/.spec-workflow:rw"
     environment:
       - DASHBOARD_PORT=${DASHBOARD_PORT:-3000}
       - DASHBOARD_HOST=0.0.0.0
@@ -12,4 +12,4 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
-    restart: unless-stopped
+    restart: no
