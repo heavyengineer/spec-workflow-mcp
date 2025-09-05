@@ -24,9 +24,6 @@ Add the following to the .mcp.json file in the root of your your project directo
         "args": [
           "run", "--rm", "-i",
           "-v", "/home/username/project/.spec-workflow:/home/username/project/.spec-workflow:rw",
-          "--user", "1000:1000",
-          "--security-opt", "no-new-privileges",
-          "--cap-drop", "ALL",
           "--entrypoint=node",
           "spec-workflow-mcp:latest",
           "/app/dist/index.js", "/home/username/project"
@@ -50,10 +47,7 @@ For example, if my username is `steev` and I'm working on the greatest tabletop 
         "command": "docker",
         "args": [
           "run", "--rm", "-i",
-          "-v", "/home/steev/tabletopsentinel.com/.spec-workflow:/home/steev/tabletopsentinel.com/.spec-workflow:rw",
-          "--user", "1000:1000",
-          "--security-opt", "no-new-privileges",
-          "--cap-drop", "ALL",
+          "-v", "/home/steev/tabletopsentinel.com/.spec-workflow:/home/steev/tabletopsentinel.com/.spec-workflow:rw,z",
           "--entrypoint=node",
           "spec-workflow-mcp:latest",
           "/app/dist/index.js", "/home/steev/tabletopsentinel.com"
@@ -66,14 +60,7 @@ For example, if my username is `steev` and I'm working on the greatest tabletop 
 **Key points:**
 - The container uses the **same paths** as your host system - this is critical for MCP server functionality
 - Only the `.spec-workflow` directory needs to be mounted (not the entire project)
-- The `--user node` flag ensures the container runs with the same UID (1000) as most host users, fixing permission issues
-- The software will expect to find the `.spec-workflow` directory in your project root. You may need to create it if it doesn't already exist.
-
-### Security considerations
-
-- The container runs with `--security-opt no-new-privileges` to prevent privilege escalation.
-- All capabilities are dropped with `--cap-drop ALL` to minimize the attack surface.
-- The `.spec-workflow` directory is mounted with read and write permissions for configuration and state management. This same configuration is used for the MCP server and the Dashboard.
+- The software will expect to find the `.spec-workflow` directory in your project root or will create it.
 
 ## Dashboard
 
