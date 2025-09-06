@@ -23,10 +23,10 @@ Add the following to the .mcp.json file in the root of your your project directo
         "command": "docker",
         "args": [
           "run", "--rm", "-i",
-          "-v", "/home/username/project/.spec-workflow:/home/username/project/.spec-workflow:rw",
+          "-v", "./.spec-workflow:/home/username/project/.spec-workflow:rw",
           "--entrypoint=node",
           "spec-workflow-mcp:latest",
-          "/app/dist/index.js", "/home/username/project"
+          "/app/dist/index.js", "./"
         ]
       }
     }
@@ -36,7 +36,7 @@ Add the following to the .mcp.json file in the root of your your project directo
 
 ## Configuration
 
-This mounts your project's `.spec-workflow` directory into the container at the same path as your host system. You must change `/home/username/project` to your actual project directory path in **both** the volume mount and the command argument.
+This mounts your project's `.spec-workflow` directory into the container at the same path as your host system. You must change `/home/username/project` to your actual project directory path in the volume mount so that the docker container has the same internal path.
 
 For example, if my username is `steev` and I'm working on the greatest tabletop gaming news site in the world, my configuration would be:
 
@@ -47,10 +47,10 @@ For example, if my username is `steev` and I'm working on the greatest tabletop 
         "command": "docker",
         "args": [
           "run", "--rm", "-i",
-          "-v", "/home/steev/tabletopsentinel.com/.spec-workflow:/home/steev/tabletopsentinel.com/.spec-workflow:rw,z",
+          "-v", "./.spec-workflow:/home/steev/tabletopsentinel.com/.spec-workflow:rw,z",
           "--entrypoint=node",
           "spec-workflow-mcp:latest",
-          "/app/dist/index.js", "/home/steev/tabletopsentinel.com"
+          "/app/dist/index.js", "./"
         ]
       }
     }
@@ -68,7 +68,7 @@ If you're not using the vscode extension, you can run the dashboard in a separat
 
 The settings are the same as the MCP server container, but also have the http interface exposed on port 3000 unless you have changed the DASHBOARD_PORT environment variable.
 
-The `SPEC_WORKFLOW_PATH` environment variable must be set to the same path as used in the MCP server container as the will use the .spec-workflow configuration directory  to share state.
+The `SPEC_WORKFLOW_PATH` environment variable must be set to the same path as used in the MCP server container as the will use the .spec-workflow configuration directory to share state.
 
 ### docker-compose
 

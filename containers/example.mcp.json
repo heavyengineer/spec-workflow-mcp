@@ -4,10 +4,10 @@
         "command": "docker",
         "args": [
           "run", "--rm", "-i",
-          "-v", "/home/username/project/.spec-workflow:/home/username/project/.spec-workflow:Z",
+          "-v", "./.spec-workflow:/home/username/project/.spec-workflow:Z",
           "--entrypoint=node",
           "spec-workflow-mcp:latest",
-          "/app/dist/index.js", "/home/username/project"
+          "/app/dist/index.js", "./"
         ]
       }
     }
