@@ -58,6 +58,44 @@ CRITICAL: Only provide filePath parameter for requests - the dashboard reads fil
   }
 };
 
+// Type definitions for discriminated unions
+type RequestApprovalArgs = {
+  action: 'request';
+  projectPath: string;
+  title: string;
+  filePath: string;
+  type: 'document' | 'action';
+  category: 'spec' | 'steering';
+  categoryName: string;
+};
+
+type StatusApprovalArgs = {
+  action: 'status';
+  projectPath?: string;
+  approvalId: string;
+};
+
+type DeleteApprovalArgs = {
+  action: 'delete';
+  projectPath?: string;
+  approvalId: string;
+};
+
+type ApprovalArgs = RequestApprovalArgs | StatusApprovalArgs | DeleteApprovalArgs;
+
+// Type guard functions
+function isRequestApproval(args: ApprovalArgs): args is RequestApprovalArgs {
+  return args.action === 'request';
+}
+
+function isStatusApproval(args: ApprovalArgs): args is StatusApprovalArgs {
+  return args.action === 'status';
+}
+
+function isDeleteApproval(args: ApprovalArgs): args is DeleteApprovalArgs {
+  return args.action === 'delete';
+}
+
 export async function approvalsHandler(
   args: {
     action: 'request' | 'status' | 'delete';
@@ -71,32 +109,65 @@ export async function approvalsHandler(
   },
   context: ToolContext
 ): Promise<ToolResponse> {
-  switch (args.action) {
+  // Cast to discriminated union type
+  const typedArgs = args as ApprovalArgs;
+  
+  switch (typedArgs.action) {
     case 'request':
-      return handleRequestApproval(args as any, context);
+      if (isRequestApproval(typedArgs)) {
+        // Validate required fields for request
+        if (!args.projectPath || !args.title || !args.filePath || !args.type || !args.category || !args.categoryName) {
+          return {
+            success: false,
+            message: 'Missing required fields for request action. Required: projectPath, title, filePath, type, category, categoryName'
+          };
+        }
+        return handleRequestApproval(typedArgs, context);
+      }
+      break;
     case 'status':
-      return handleGetApprovalStatus(args as any, context);
+      if (isStatusApproval(typedArgs)) {
+        // Validate required fields for status
+        if (!args.approvalId) {
+          return {
+            success: false,
+            message: 'Missing required field for status action. Required: approvalId'
+          };
+        }
+        return handleGetApprovalStatus(typedArgs, context);
+      }
+      break;
     case 'delete':
-      return handleDeleteApproval(args as any, context);
+      if (isDeleteApproval(typedArgs)) {
+        // Validate required fields for delete
+        if (!args.approvalId) {
+          return {
+            success: false,
+            message: 'Missing required field for delete action. Required: approvalId'
+          };
+        }
+        return handleDeleteApproval(typedArgs, context);
+      }
+      break;
     default:
       return {
         success: false,
-        message: `Unknown action: ${args.action}. Use 'request', 'status', or 'delete'.`
+        message: `Unknown action: ${(args as any).action}. Use 'request', 'status', or 'delete'.`
       };
   }
+  
+  // This should never be reached due to exhaustive type checking
+  return {
+    success: false,
+    message: 'Invalid action configuration'
+  };
 }
 
 async function handleRequestApproval(
-  args: { projectPath: string; title: string; filePath: string; type: 'document' | 'action'; category: 'spec' | 'steering'; categoryName: string },
+  args: RequestApprovalArgs,
   context: ToolContext
 ): Promise<ToolResponse> {
-  // Validate required fields for request action
-  if (!args.projectPath || !args.title || !args.filePath || !args.type || !args.category || !args.categoryName) {
-    return {
-      success: false,
-      message: 'Missing required fields for request action. Required: projectPath, title, filePath, type, category, categoryName'
-    };
-  }
+  // No need for validation here as types ensure all fields are present
 
   try {
     // Validate and resolve project path
@@ -140,25 +211,20 @@ async function handleRequestApproval(
       }
     };
 
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return {
       success: false,
-      message: `Failed to create approval request: ${error.message}`
+      message: `Failed to create approval request: ${errorMessage}`
     };
   }
 }
 
 async function handleGetApprovalStatus(
-  args: { projectPath?: string; approvalId: string },
+  args: StatusApprovalArgs,
   context: ToolContext
 ): Promise<ToolResponse> {
-  // Validate required fields for status action
-  if (!args.approvalId) {
-    return {
-      success: false,
-      message: 'Missing required field for status action. Required: approvalId'
-    };
-  }
+  // approvalId is guaranteed by type
 
   try {
     // Use provided projectPath or fall back to context
@@ -266,25 +332,20 @@ async function handleGetApprovalStatus(
       }
     };
 
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return {
       success: false,
-      message: `Failed to check approval status: ${error.message}`
+      message: `Failed to check approval status: ${errorMessage}`
     };
   }
 }
 
 async function handleDeleteApproval(
-  args: { projectPath?: string; approvalId: string },
+  args: DeleteApprovalArgs,
   context: ToolContext
 ): Promise<ToolResponse> {
-  // Validate required fields for delete action
-  if (!args.approvalId) {
-    return {
-      success: false,
-      message: 'Missing required field for delete action. Required: approvalId'
-    };
-  }
+  // approvalId is guaranteed by type
 
   try {
     // Use provided projectPath or fall back to context
@@ -371,10 +432,11 @@ async function handleDeleteApproval(
       };
     }
 
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return {
       success: false,
-      message: `Failed to delete approval: ${error.message}`,
+      message: `Failed to delete approval: ${errorMessage}`,
       nextSteps: [
         'Check project path',
         'Verify permissions',

@@ -39,10 +39,11 @@ export async function handleToolCall(name: string, args: any, context: ToolConte
     // Check if the response indicates an error
     isError = !response.success;
 
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     response = {
       success: false,
-      message: `Tool execution failed: ${error.message}`
+      message: `Tool execution failed: ${errorMessage}`
     };
     isError = true;
   }

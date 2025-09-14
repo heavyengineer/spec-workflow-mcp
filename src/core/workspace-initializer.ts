@@ -75,8 +75,9 @@ export class WorkspaceInitializer {
       
       // Always overwrite to ensure latest template version is used
       await fs.writeFile(targetPath, content, 'utf-8');
-    } catch (error: any) {
-      console.error(`Failed to copy template ${templateName}: ${error.message}`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error(`Failed to copy template ${templateName}: ${errorMessage}`);
     }
   }
   

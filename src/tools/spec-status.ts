@@ -153,10 +153,11 @@ export async function specStatusHandler(args: any, context: ToolContext): Promis
       }
     };
     
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return {
       success: false,
-      message: `Failed to get specification status: ${error.message}`,
+      message: `Failed to get specification status: ${errorMessage}`,
       nextSteps: [
         'Check if the specification exists',
         'Verify the project path',

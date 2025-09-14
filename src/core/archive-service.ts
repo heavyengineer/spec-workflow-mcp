@@ -24,8 +24,8 @@ export class SpecArchiveService {
     try {
       await fs.access(archiveSpecPath);
       throw new Error(`Spec '${specName}' already exists in archive`);
-    } catch (error: any) {
-      if (error.code !== 'ENOENT') {
+    } catch (error) {
+      if (error instanceof Error && (error as any).code !== 'ENOENT') {
         throw error;
       }
     }
@@ -36,8 +36,9 @@ export class SpecArchiveService {
       
       // Move the entire spec directory to archive
       await fs.rename(activeSpecPath, archiveSpecPath);
-    } catch (error: any) {
-      throw new Error(`Failed to archive spec '${specName}': ${error.message}`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to archive spec '${specName}': ${errorMessage}`);
     }
   }
 
@@ -56,8 +57,8 @@ export class SpecArchiveService {
     try {
       await fs.access(activeSpecPath);
       throw new Error(`Spec '${specName}' already exists in active specs`);
-    } catch (error: any) {
-      if (error.code !== 'ENOENT') {
+    } catch (error) {
+      if (error instanceof Error && (error as any).code !== 'ENOENT') {
         throw error;
       }
     }
@@ -68,8 +69,9 @@ export class SpecArchiveService {
       
       // Move the entire spec directory back to active
       await fs.rename(archiveSpecPath, activeSpecPath);
-    } catch (error: any) {
-      throw new Error(`Failed to unarchive spec '${specName}': ${error.message}`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to unarchive spec '${specName}': ${errorMessage}`);
     }
   }
 

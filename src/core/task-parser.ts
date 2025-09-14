@@ -9,6 +9,11 @@
  * @returns Array of prompt sections or undefined if not structured
  */
 function parseStructuredPrompt(promptText: string): PromptSection[] | undefined {
+  // Validate input
+  if (!promptText || typeof promptText !== 'string') {
+    return undefined;
+  }
+  
   // Check if the prompt contains pipe separators (indicating structured format)
   if (!promptText.includes('|')) {
     return undefined;
@@ -17,11 +22,16 @@ function parseStructuredPrompt(promptText: string): PromptSection[] | undefined 
   const sections: PromptSection[] = [];
   
   // Split by pipe and process each section
-  const parts = promptText.split('|').map(part => part.trim());
+  const parts = promptText.split('|').map(part => part.trim()).filter(part => part.length > 0);
+  
+  // Return early if no valid parts after filtering
+  if (parts.length === 0) {
+    return undefined;
+  }
   
   for (let i = 0; i < parts.length; i++) {
     const part = parts[i];
-    if (!part) continue;
+    // Part is guaranteed to be non-empty due to filter above
     
     // Special handling for the first part - it might contain preamble text before the first key
     if (i === 0) {
@@ -37,19 +47,23 @@ function parseStructuredPrompt(promptText: string): PromptSection[] | undefined 
         }
       }
       
-      if (lastKeyIndex > -1) {
+      if (lastKeyIndex > -1 && lastKeyIndex < part.length) {
         // Extract the key-value pair starting from the found key
         const keyValuePart = part.substring(lastKeyIndex);
         const colonIndex = keyValuePart.indexOf(':');
-        if (colonIndex > 0) {
+        if (colonIndex > 0 && colonIndex < keyValuePart.length - 1) {
           const key = keyValuePart.substring(0, colonIndex).trim();
           const value = keyValuePart.substring(colonIndex + 1).trim();
           
-          const cleanKey = key.replace(/^_+|_+$/g, '');
-          const cleanValue = value.replace(/^_+|_+$/g, '');
-          
-          if (cleanKey && cleanValue) {
-            sections.push({ key: cleanKey, value: cleanValue });
+          // Validate key and value are non-empty after cleaning
+          if (key && value) {
+            const cleanKey = key.replace(/^_+|_+$/g, '');
+            const cleanValue = value.replace(/^_+|_+$/g, '');
+            
+            // Only add if both cleaned values are non-empty
+            if (cleanKey && cleanValue) {
+              sections.push({ key: cleanKey, value: cleanValue });
+            }
           }
         }
       }
@@ -58,21 +72,28 @@ function parseStructuredPrompt(promptText: string): PromptSection[] | undefined 
     
     // For other parts, look for "Key: Value" pattern
     const colonIndex = part.indexOf(':');
-    if (colonIndex > 0) {
+    if (colonIndex > 0 && colonIndex < part.length - 1) {
       const key = part.substring(0, colonIndex).trim();
       const value = part.substring(colonIndex + 1).trim();
       
-      // Clean up any markdown formatting (underscores for italics, etc.)
-      const cleanKey = key.replace(/^_+|_+$/g, '');
-      const cleanValue = value.replace(/^_+|_+$/g, '');
-      
-      if (cleanKey && cleanValue) {
-        sections.push({ key: cleanKey, value: cleanValue });
+      // Validate key and value exist
+      if (key && value) {
+        // Clean up any markdown formatting (underscores for italics, etc.)
+        const cleanKey = key.replace(/^_+|_+$/g, '');
+        const cleanValue = value.replace(/^_+|_+$/g, '');
+        
+        // Only add if both cleaned values are non-empty
+        if (cleanKey && cleanValue) {
+          sections.push({ key: cleanKey, value: cleanValue });
+        }
       }
-    } else {
-      // If no colon, treat the whole part as a continuation of the previous section
+    } else if (colonIndex <= 0 || colonIndex >= part.length - 1) {
+      // If no valid colon position, treat as continuation only if previous section exists
       if (sections.length > 0) {
-        sections[sections.length - 1].value += ' | ' + part.replace(/^_+|_+$/g, '');
+        const cleanedPart = part.replace(/^_+|_+$/g, '').trim();
+        if (cleanedPart) {
+          sections[sections.length - 1].value += ' | ' + cleanedPart;
+        }
       }
     }
   }
