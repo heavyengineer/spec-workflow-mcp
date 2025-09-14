@@ -50,6 +50,23 @@ export class DashboardServer {
   }
 
   async start() {
+    // Check for existing dashboard FIRST before allocating any resources
+    if (this.options.port) {
+      const existingDashboard = await checkExistingDashboard(this.options.port);
+      
+      if (existingDashboard) {
+        this.actualPort = this.options.port;
+        this.isUsingExistingDashboard = true;
+        const existingUrl = `http://localhost:${this.actualPort}`;
+        console.error(`Dashboard already running at ${existingUrl} - connecting to existing instance`);
+        
+        // Return early BEFORE starting any watchers or registering routes
+        // This prevents resource leaks when connecting to existing dashboards
+        return existingUrl;
+      }
+    }
+
+    // Only proceed with initialization if we're creating a new dashboard
     // Fetch package version once at startup
     try {
       const response = await fetch('https://registry.npmjs.org/@pimzino/spec-workflow-mcp/latest');
@@ -628,27 +645,14 @@ export class DashboardServer {
       this.broadcastApprovalUpdate();
     });
 
-    // Start watcher
+    // Start watcher - only starts for new dashboard instances
     await this.watcher.start();
     await this.approvalStorage.start();
 
     // Allocate port - use custom port if provided, otherwise use ephemeral port
     if (this.options.port) {
-      // Check if dashboard is already running on this port
-      const existingDashboard = await checkExistingDashboard(this.options.port);
-      
-      if (existingDashboard) {
-        this.actualPort = this.options.port;
-        this.isUsingExistingDashboard = true;
-        const existingUrl = `http://localhost:${this.actualPort}`;
-        console.error(`Dashboard already running at ${existingUrl} - connecting to existing instance`);
-        
-        // Don't start a new server, just return the existing URL
-        // Note: We don't open browser again since it's already running
-        return existingUrl;
-      }
-      
       // Validate and check custom port availability
+      // We already checked for existing dashboard earlier, so just validate the port
       await validateAndCheckPort(this.options.port);
       this.actualPort = this.options.port;
       console.error(`Using custom port: ${this.actualPort}`);
