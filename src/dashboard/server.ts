@@ -9,7 +9,7 @@ import { SpecWatcher } from './watcher.js';
 import { SpecParser } from './parser.js';
 import open from 'open';
 import { WebSocket } from 'ws';
-import { findAvailablePort, validateAndCheckPort } from './utils.js';
+import { findAvailablePort, validateAndCheckPort, checkExistingDashboard, DASHBOARD_TEST_MESSAGE } from './utils.js';
 import { ApprovalStorage } from './approval-storage.js';
 import { parseTasksFromMarkdown } from '../core/task-parser.js';
 import { SpecArchiveService } from '../core/archive-service.js';
@@ -37,6 +37,7 @@ export class DashboardServer {
   private actualPort: number = 0;
   private clients: Set<WebSocket> = new Set();
   private packageVersion: string = 'unknown';
+  private isUsingExistingDashboard: boolean = false;
 
   constructor(options: DashboardOptions) {
     this.options = options;
@@ -49,6 +50,23 @@ export class DashboardServer {
   }
 
   async start() {
+    // Check for existing dashboard FIRST before allocating any resources
+    if (this.options.port) {
+      const existingDashboard = await checkExistingDashboard(this.options.port);
+      
+      if (existingDashboard) {
+        this.actualPort = this.options.port;
+        this.isUsingExistingDashboard = true;
+        const existingUrl = `http://localhost:${this.actualPort}`;
+        console.error(`Dashboard already running at ${existingUrl} - connecting to existing instance`);
+        
+        // Return early BEFORE starting any watchers or registering routes
+        // This prevents resource leaks when connecting to existing dashboards
+        return existingUrl;
+      }
+    }
+
+    // Only proceed with initialization if we're creating a new dashboard
     // Fetch package version once at startup
     try {
       const response = await fetch('https://registry.npmjs.org/@pimzino/spec-workflow-mcp/latest');
@@ -126,7 +144,7 @@ export class DashboardServer {
 
     // API endpoints
     this.app.get('/api/test', async () => {
-      return { message: 'MCP Workflow Dashboard Online!' };
+      return { message: DASHBOARD_TEST_MESSAGE };
     });
 
     this.app.get('/api/specs', async () => {
@@ -627,13 +645,14 @@ export class DashboardServer {
       this.broadcastApprovalUpdate();
     });
 
-    // Start watcher
+    // Start watcher - only starts for new dashboard instances
     await this.watcher.start();
     await this.approvalStorage.start();
 
     // Allocate port - use custom port if provided, otherwise use ephemeral port
     if (this.options.port) {
       // Validate and check custom port availability
+      // We already checked for existing dashboard earlier, so just validate the port
       await validateAndCheckPort(this.options.port);
       this.actualPort = this.options.port;
       console.error(`Using custom port: ${this.actualPort}`);
@@ -745,6 +764,13 @@ export class DashboardServer {
   }
 
   async stop() {
+    // If we connected to an existing dashboard, we shouldn't stop it
+    // Only stop if we actually started our own server
+    if (this.isUsingExistingDashboard) {
+      console.error('Using existing dashboard instance - not stopping it');
+      return;
+    }
+    
     // Close all WebSocket connections with proper cleanup
     this.clients.forEach((client) => {
       try {
