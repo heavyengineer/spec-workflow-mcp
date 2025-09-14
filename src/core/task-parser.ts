@@ -3,6 +3,87 @@
  * Provides consistent task parsing across all components
  */
 
+/**
+ * Parse a prompt string into structured sections if it contains pipe separators
+ * @param promptText The raw prompt text
+ * @returns Array of prompt sections or undefined if not structured
+ */
+function parseStructuredPrompt(promptText: string): PromptSection[] | undefined {
+  // Check if the prompt contains pipe separators (indicating structured format)
+  if (!promptText.includes('|')) {
+    return undefined;
+  }
+
+  const sections: PromptSection[] = [];
+  
+  // Split by pipe and process each section
+  const parts = promptText.split('|').map(part => part.trim());
+  
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i];
+    if (!part) continue;
+    
+    // Special handling for the first part - it might contain preamble text before the first key
+    if (i === 0) {
+      // Look for the last occurrence of a known key pattern in the first part
+      const knownKeys = ['Role', 'Task', 'Context', 'Instructions', 'Requirements', 'Leverage', 'Success', 'Restrictions'];
+      let lastKeyIndex = -1;
+      
+      for (const key of knownKeys) {
+        const keyPattern = new RegExp(`\\b${key}:`, 'i');
+        const match = part.match(keyPattern);
+        if (match && match.index !== undefined && match.index > lastKeyIndex) {
+          lastKeyIndex = match.index;
+        }
+      }
+      
+      if (lastKeyIndex > -1) {
+        // Extract the key-value pair starting from the found key
+        const keyValuePart = part.substring(lastKeyIndex);
+        const colonIndex = keyValuePart.indexOf(':');
+        if (colonIndex > 0) {
+          const key = keyValuePart.substring(0, colonIndex).trim();
+          const value = keyValuePart.substring(colonIndex + 1).trim();
+          
+          const cleanKey = key.replace(/^_+|_+$/g, '');
+          const cleanValue = value.replace(/^_+|_+$/g, '');
+          
+          if (cleanKey && cleanValue) {
+            sections.push({ key: cleanKey, value: cleanValue });
+          }
+        }
+      }
+      continue;
+    }
+    
+    // For other parts, look for "Key: Value" pattern
+    const colonIndex = part.indexOf(':');
+    if (colonIndex > 0) {
+      const key = part.substring(0, colonIndex).trim();
+      const value = part.substring(colonIndex + 1).trim();
+      
+      // Clean up any markdown formatting (underscores for italics, etc.)
+      const cleanKey = key.replace(/^_+|_+$/g, '');
+      const cleanValue = value.replace(/^_+|_+$/g, '');
+      
+      if (cleanKey && cleanValue) {
+        sections.push({ key: cleanKey, value: cleanValue });
+      }
+    } else {
+      // If no colon, treat the whole part as a continuation of the previous section
+      if (sections.length > 0) {
+        sections[sections.length - 1].value += ' | ' + part.replace(/^_+|_+$/g, '');
+      }
+    }
+  }
+  
+  return sections.length > 0 ? sections : undefined;
+}
+export interface PromptSection {
+  key: string;                         // Section name (e.g., "Role", "Task", "Restrictions")
+  value: string;                       // Section content
+}
+
 export interface ParsedTask {
   id: string;                          // Task ID (e.g., "1", "1.1", "2.3")
   description: string;                 // Task description
@@ -17,13 +98,13 @@ export interface ParsedTask {
   files?: string[];                    // Files to modify/create
   purposes?: string[];                 // Purpose statements
   implementationDetails?: string[];    // Implementation bullet points
-  prompt?: string;                     // AI prompt for this task
+  prompt?: string;                     // AI prompt for this task (full text)
+  promptStructured?: PromptSection[];  // Structured prompt sections (if prompt contains pipe separators)
   
   // For backward compatibility
   completed: boolean;                  // true if status === 'completed'
   inProgress: boolean;                 // true if status === 'in-progress'
 }
-
 export interface TaskParserResult {
   tasks: ParsedTask[];
   inProgressTask: string | null;       // ID of current in-progress task (e.g., "1.1")
@@ -105,47 +186,54 @@ export function parseTasksFromMarkdown(content: string): TaskParserResult {
       
       // Skip empty lines
       if (!contentLine) continue;
-      
       // Check for metadata patterns
-      if (contentLine.includes('_Requirements:')) {
-        const reqMatch = contentLine.match(/_Requirements:\s*(.+?)_?$/);
-        if (reqMatch) {
-          const reqText = reqMatch[1].replace(/_$/, '');
-          // Split by comma or space and filter out empty/NFR
-          requirements.push(...reqText.split(/[,\s]+/).filter(r => r && r !== 'NFR'));
+      // IMPORTANT: Check for _Prompt: first since it can contain nested _Requirements: and _Leverage:
+      if (contentLine.includes('_Prompt:')) {
+        // Capture everything after _Prompt: until the final closing underscore
+        const promptMatch = contentLine.match(/_Prompt:\s*(.+)_$/);
+        if (promptMatch) {
+          prompt = promptMatch[1].trim();
+        } else {
+          // If no closing underscore on same line, capture multi-line
+          const afterPrompt = contentLine.match(/_Prompt:\s*(.+)$/);
+          let promptText = afterPrompt ? afterPrompt[1] : '';
+          promptText = promptText.replace(/_$/, '').trim();
+
+          // Accumulate continuation lines that are not new bullets/metadata
+          let j = lineIdx + 1;
+          while (j < endLine) {
+            const nextTrim = lines[j].trim();
+            if (!nextTrim) break; // stop at blank line
+            // Stop if we hit another bullet/metadata marker or files/purpose sections
+            if (
+              /^-\s/.test(nextTrim) ||
+              /^Files?:/i.test(nextTrim) ||
+              /^Purpose:/i.test(nextTrim)
+            ) {
+              break;
+            }
+            promptText += ' ' + nextTrim.replace(/_$/, '').trim();
+            j++;
+          }
+          prompt = promptText;
+          // Skip consumed continuation lines
+          lineIdx = j - 1;
         }
-      } else if (contentLine.includes('_Leverage:')) {
-        const levMatch = contentLine.match(/_Leverage:\s*(.+?)_?$/);
+      } else if (contentLine.includes('_Requirements:') && !contentLine.includes('_Prompt:')) {
+        // Only process if not inside a prompt
+        const reqMatch = contentLine.match(/_Requirements:\s*([^_]+?)_/);
+        if (reqMatch) {
+          const reqText = reqMatch[1].trim();
+          // Split by comma and filter out empty/NFR
+          requirements.push(...reqText.split(',').map(r => r.trim()).filter(r => r && r !== 'NFR'));
+        }
+      } else if (contentLine.includes('_Leverage:') && !contentLine.includes('_Prompt:')) {
+        // Only process if not inside a prompt
+        const levMatch = contentLine.match(/_Leverage:\s*([^_]+?)_/);
         if (levMatch) {
-          const levText = levMatch[1].replace(/_$/, '');
+          const levText = levMatch[1].trim();
           leverage.push(...levText.split(',').map(l => l.trim()).filter(l => l));
         }
-      } else if (contentLine.includes('_Prompt:')) {
-        // Capture single-line prompt and optional multi-line continuation
-        const afterPrompt = contentLine.match(/_Prompt:\s*(.+)$/);
-        let promptText = afterPrompt ? afterPrompt[1] : '';
-        promptText = promptText.replace(/_$/, '').trim();
-
-        // Accumulate continuation lines that are not new bullets/metadata
-        let j = lineIdx + 1;
-        while (j < endLine) {
-          const nextTrim = lines[j].trim();
-          if (!nextTrim) break; // stop at blank line
-          // Stop if we hit another bullet/metadata marker or files/purpose sections
-          if (
-            /^-\s/.test(nextTrim) ||
-            /^_?(Requirements|Leverage|Prompt):/i.test(nextTrim) ||
-            /^Files?:/i.test(nextTrim) ||
-            /^Purpose:/i.test(nextTrim)
-          ) {
-            break;
-          }
-          promptText += ' ' + nextTrim.replace(/_$/, '').trim();
-          j++;
-        }
-        prompt = promptText;
-        // Skip consumed continuation lines
-        lineIdx = j - 1;
       } else if (contentLine.match(/Files?:/)) {
         const fileMatch = contentLine.match(/Files?:\s*(.+)$/);
         if (fileMatch) {
@@ -175,6 +263,12 @@ export function parseTasksFromMarkdown(content: string): TaskParserResult {
                       implementationDetails.length > 0 ||
                       !!prompt;
     
+    // Parse structured prompt if applicable
+    let promptStructured: PromptSection[] | undefined;
+    if (prompt) {
+      promptStructured = parseStructuredPrompt(prompt);
+    }
+    
     const task: ParsedTask = {
       id: taskId,
       description,
@@ -191,9 +285,9 @@ export function parseTasksFromMarkdown(content: string): TaskParserResult {
       ...(files.length > 0 && { files }),
       ...(purposes.length > 0 && { purposes }),
       ...(implementationDetails.length > 0 && { implementationDetails }),
-      ...(prompt && { prompt })
-    };
-    
+      ...(prompt && { prompt }),
+      ...(promptStructured && { promptStructured })
+    };    
     tasks.push(task);
     
     // Track first in-progress task (for UI highlighting)

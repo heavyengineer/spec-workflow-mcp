@@ -240,7 +240,7 @@ const tools = [
   'get-spec-context', 'get-steering-context', 'get-template-context',
   
   // Status management
-  'spec-list', 'spec-status', 'manage-tasks', 'refresh-tasks',
+  'spec-list', 'spec-status', 'manage-tasks',
   
   // Approval workflow
   'request-approval', 'get-approval-status', 'delete-approval'

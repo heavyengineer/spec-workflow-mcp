@@ -13,6 +13,7 @@ import { registerPrompts, handlePromptList, handlePromptGet } from './prompts/in
 import { validateProjectPath } from './core/path-utils.js';
 import { DashboardServer } from './dashboard/server.js';
 import { SessionManager } from './core/session-manager.js';
+import { WorkspaceInitializer } from './core/workspace-initializer.js';
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -66,6 +67,13 @@ export class SpecWorkflowMCPServer {
     try {
       // Validate project path
       await validateProjectPath(this.projectPath);
+      
+      // Initialize workspace
+      const __dirname = dirname(fileURLToPath(import.meta.url));
+      const packageJsonPath = join(__dirname, '..', 'package.json');
+      const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+      const workspaceInitializer = new WorkspaceInitializer(this.projectPath, packageJson.version);
+      await workspaceInitializer.initializeWorkspace();
       
       // Initialize session manager
       this.sessionManager = new SessionManager(this.projectPath);

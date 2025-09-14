@@ -35,6 +35,11 @@ export interface TaskProgressData {
   inProgress?: string;
 }
 
+export interface PromptSection {
+  key: string;
+  value: string;
+}
+
 export interface TaskInfo {
   id: string;
   description: string;
@@ -51,7 +56,7 @@ export interface TaskInfo {
   leverage?: string;                   // Code to leverage
   purposes?: string[];                 // Purpose statements
   prompt?: string;                     // AI prompt for this task
-  
+  promptStructured?: PromptSection[];  // Structured prompt sections  
   // For backward compatibility
   inProgress?: boolean;                // true if status === 'in-progress'
 }

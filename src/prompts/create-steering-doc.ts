@@ -5,16 +5,11 @@ import { ToolContext } from '../types.js';
 const prompt: Prompt = {
   name: 'create-steering-doc',
   title: 'Create Steering Document',
-  description: 'Create steering documents that provide high-level guidance and constraints for AI agents working on spec implementation. These documents help maintain consistency and quality.',
+  description: 'Guide for creating project steering documents (product, tech, structure) directly in the file system. These provide high-level project guidance.',
   arguments: [
     {
-      name: 'specName',
-      description: 'Feature name in kebab-case that this steering doc applies to',
-      required: true
-    },
-    {
       name: 'docType',
-      description: 'Type of steering document: implementation-guide, review-checklist, or constraints',
+      description: 'Type of steering document: product, tech, or structure',
       required: true
     },
     {
@@ -26,13 +21,13 @@ const prompt: Prompt = {
 };
 
 async function handler(args: Record<string, any>, context: ToolContext): Promise<PromptMessage[]> {
-  const { specName, docType, scope } = args;
+  const { docType, scope } = args;
   
-  if (!specName || !docType) {
-    throw new Error('specName and docType are required arguments');
+  if (!docType) {
+    throw new Error('docType is a required argument');
   }
 
-  const validDocTypes = ['implementation-guide', 'review-checklist', 'constraints'];
+  const validDocTypes = ['product', 'tech', 'structure'];
   if (!validDocTypes.includes(docType)) {
     throw new Error(`docType must be one of: ${validDocTypes.join(', ')}`);
   }
@@ -42,33 +37,38 @@ async function handler(args: Record<string, any>, context: ToolContext): Promise
       role: 'user',
       content: {
         type: 'text',
-        text: `Create a ${docType} steering document for the "${specName}" feature.
+        text: `Create a ${docType} steering document for the project.
 
 **Context:**
 - Project: ${context.projectPath}
-- Feature: ${specName}
 - Steering document type: ${docType}
 ${scope ? `- Scope: ${scope}` : ''}
 ${context.dashboardUrl ? `- Dashboard: ${context.dashboardUrl}` : ''}
 
 **Instructions:**
-1. First, use the get-steering-context tool to understand existing steering documents and patterns
-2. Use the create-steering-doc tool to create the appropriate steering document
-3. Ensure the document provides clear, actionable guidance for AI agents
+1. First, read the template at: .spec-workflow/templates/${docType}-template.md
+2. Check if steering docs exist at: .spec-workflow/steering/
+3. Create comprehensive content following the template structure
+4. Create the document at: .spec-workflow/steering/${docType}.md
+5. After creating, use approvals tool with action:'request' to get user approval
+
+**File Paths:**
+- Template location: .spec-workflow/templates/${docType}-template.md
+- Document destination: .spec-workflow/steering/${docType}.md
 
 **Steering Document Types:**
-- **implementation-guide**: Provides step-by-step guidance for implementing the spec
-- **review-checklist**: Lists quality gates and review criteria  
-- **constraints**: Defines technical and business constraints that must be respected
+- **product**: Defines project vision, goals, and user outcomes
+- **tech**: Documents technology decisions and architecture patterns
+- **structure**: Maps codebase organization and conventions
 
 **Key Principles:**
 - Be specific and actionable
 - Include examples where helpful
-- Reference relevant spec sections
 - Consider both technical and business requirements
-- Provide clear success criteria
+- Provide clear guidance for future development
+- Templates are automatically updated on server start
 
-Please create a comprehensive ${docType} document that will help ensure high-quality implementation of this feature.`
+Please read the ${docType} template and create a comprehensive steering document at the specified path.`
       }
     }
   ];

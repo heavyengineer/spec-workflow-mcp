@@ -9,7 +9,7 @@
 | **Workflow** | `spec-workflow-guide`, `steering-guide` | Provide workflow instructions |
 | **Content** | `create-spec-doc`, `create-steering-doc`, `get-template-context` | Create and template documents |
 | **Search** | `get-spec-context`, `get-steering-context`, `spec-list` | Find and load existing content |
-| **Status** | `spec-status`, `manage-tasks`, `refresh-tasks` | Track progress |
+| **Status** | `spec-status`, `manage-tasks` | Track progress |
 | **Approval** | `request-approval`, `get-approval-status`, `delete-approval` | Manage approval workflow |
 
 ## 🔄 Workflow Tools
@@ -499,29 +499,6 @@ sequenceDiagram
 ```
 
 ---
-
-### `refresh-tasks`
-
-**Purpose**: Update and refresh task status from tasks.md file
-
-```typescript
-// Parameters
-{
-  projectPath: "/absolute/path/to/project",
-  specName: "user-authentication"
-}
-
-// Response
-{
-  success: true,
-  message: "Tasks refreshed successfully",
-  data: {
-    updated: true,
-    taskCount: 8,
-    summary: { total: 8, completed: 2, inProgress: 1, pending: 5 }
-  }
-}
-```
 
 ## ✅ Approval Tools
 

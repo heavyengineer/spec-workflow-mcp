@@ -4,6 +4,10 @@ import { SpecWorkflowMCPServer } from './server.js';
 import { DashboardServer } from './dashboard/server.js';
 import { homedir } from 'os';
 import { loadConfigFile, mergeConfigs, SpecWorkflowConfig } from './config.js';
+import { WorkspaceInitializer } from './core/workspace-initializer.js';
+import { readFileSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 
 function showHelp() {
   console.error(`
@@ -258,6 +262,13 @@ async function main() {
       if (port) {
         console.error(`Using custom port: ${port}`);
       }
+      
+      // Initialize workspace directories and templates
+      const __dirname = dirname(fileURLToPath(import.meta.url));
+      const packageJsonPath = join(__dirname, '..', 'package.json');
+      const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+      const workspaceInitializer = new WorkspaceInitializer(projectPath, packageJson.version);
+      await workspaceInitializer.initializeWorkspace();
       
       const dashboardServer = new DashboardServer({
         projectPath,

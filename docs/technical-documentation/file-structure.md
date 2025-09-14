@@ -61,7 +61,6 @@ src/
 │   ├── spec-list.ts                 # List all specifications
 │   ├── spec-status.ts               # Get spec status
 │   ├── manage-tasks.ts              # Task management
-│   ├── refresh-tasks.ts             # Refresh task status
 │   ├── request-approval.ts          # Create approval requests
 │   ├── get-approval-status.ts       # Check approval status
 │   └── delete-approval.ts           # Clean up approvals

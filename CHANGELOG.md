@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2025-09-13
+
+**NOTE: This version brings major architectural changes to the project. However they are non breaking changes.**
+
+### Changes
+- Replaced various filesystem binded tools with elaborate instructions and changes to the workflow to allow AI agents to create documents and manage the project without the need for filesystem tools.
+  **Its worth noting this change should improve the accuracy of AI agents following the workflow. Its important to also note this has only been tested with Claude Sonnet 4, Claude Opus 4.1 and GPT 5**
+- I have added the ability to use custom spec / steering document templates which is aimed at allowing users to customize the documents to their own needs. This is aimed at Power Users but everyone is welcome to use it.
+- Added dynamic year to the spec-workflow-guide tool to ensure the agent is using the current year for web search for more up to date information.
+
+**There are no plans to revert back to the previous architecture. We have made this decision to improve the accuracy of AI agents following the workflow as well as improve the maintainability of the project. If you wish to use the old architecture, you can still do so by running an older version of the MCP server however please note that in the event of a change to the MCP working directory structure, the dashboard or VSCode extension will not work as expected.**
+
+
 ## [0.0.33] - 2025-09-10
 
 ### Added
