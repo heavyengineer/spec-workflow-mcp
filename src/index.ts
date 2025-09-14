@@ -2,6 +2,7 @@
 
 import { SpecWorkflowMCPServer } from './server.js';
 import { DashboardServer } from './dashboard/server.js';
+import { DASHBOARD_TEST_MESSAGE } from './dashboard/utils.js';
 import { homedir } from 'os';
 import { loadConfigFile, mergeConfigs, SpecWorkflowConfig } from './config.js';
 import { WorkspaceInitializer } from './core/workspace-initializer.js';
@@ -291,7 +292,7 @@ async function main() {
             
             if (response.ok) {
               const data = await response.json() as { message?: string };
-              if (data.message === 'MCP Workflow Dashboard Online!') {
+              if (data.message === DASHBOARD_TEST_MESSAGE) {
                 console.error(`Dashboard already running at http://localhost:${port}`);
                 console.error('Another dashboard instance is already serving this project.');
                 console.error('Please close the existing instance or use a different port.');

@@ -12,6 +12,7 @@ import { registerTools, handleToolCall } from './tools/index.js';
 import { registerPrompts, handlePromptList, handlePromptGet } from './prompts/index.js';
 import { validateProjectPath } from './core/path-utils.js';
 import { DashboardServer } from './dashboard/server.js';
+import { DASHBOARD_TEST_MESSAGE } from './dashboard/utils.js';
 import { SessionManager } from './core/session-manager.js';
 import { WorkspaceInitializer } from './core/workspace-initializer.js';
 import { readFileSync } from 'fs';
@@ -107,7 +108,7 @@ export class SpecWorkflowMCPServer {
               
               if (response.ok) {
                 const data = await response.json() as { message?: string };
-                if (data.message === 'MCP Workflow Dashboard Online!') {
+                if (data.message === DASHBOARD_TEST_MESSAGE) {
                   // Existing dashboard found, use it
                   this.dashboardUrl = `http://localhost:${dashboardOptions.port}`;
                   console.error(`Found existing dashboard at ${this.dashboardUrl} - connecting to it`);

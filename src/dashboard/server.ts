@@ -9,7 +9,7 @@ import { SpecWatcher } from './watcher.js';
 import { SpecParser } from './parser.js';
 import open from 'open';
 import { WebSocket } from 'ws';
-import { findAvailablePort, validateAndCheckPort, checkExistingDashboard } from './utils.js';
+import { findAvailablePort, validateAndCheckPort, checkExistingDashboard, DASHBOARD_TEST_MESSAGE } from './utils.js';
 import { ApprovalStorage } from './approval-storage.js';
 import { parseTasksFromMarkdown } from '../core/task-parser.js';
 import { SpecArchiveService } from '../core/archive-service.js';
@@ -144,7 +144,7 @@ export class DashboardServer {
 
     // API endpoints
     this.app.get('/api/test', async () => {
-      return { message: 'MCP Workflow Dashboard Online!' };
+      return { message: DASHBOARD_TEST_MESSAGE };
     });
 
     this.app.get('/api/specs', async () => {
