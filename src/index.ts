@@ -276,9 +276,38 @@ async function main() {
         port
       });
       
-      const dashboardUrl = await dashboardServer.start();
-      console.error(`Dashboard started at: ${dashboardUrl}`);
-      console.error('Press Ctrl+C to stop the dashboard');
+      try {
+        const dashboardUrl = await dashboardServer.start();
+        console.error(`Dashboard started at: ${dashboardUrl}`);
+        console.error('Press Ctrl+C to stop the dashboard');
+      } catch (error: any) {
+        if (error.message.includes('already in use') && port) {
+          // Check if it's an existing dashboard
+          try {
+            const response = await fetch(`http://localhost:${port}/api/test`, {
+              method: 'GET',
+              signal: AbortSignal.timeout(1000)
+            });
+            
+            if (response.ok) {
+              const data = await response.json() as { message?: string };
+              if (data.message === 'MCP Workflow Dashboard Online!') {
+                console.error(`Dashboard already running at http://localhost:${port}`);
+                console.error('Another dashboard instance is already serving this project.');
+                console.error('Please close the existing instance or use a different port.');
+                process.exit(0);
+              }
+            }
+          } catch {
+            // Not our dashboard
+          }
+          console.error(`Error: Port ${port} is already in use by another service.`);
+          console.error('Please choose a different port or stop the service using this port.');
+        } else {
+          console.error(`Failed to start dashboard: ${error.message}`);
+        }
+        process.exit(1);
+      }
       
       // Handle graceful shutdown
       const shutdown = async () => {

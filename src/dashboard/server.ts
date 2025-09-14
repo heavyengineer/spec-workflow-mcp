@@ -9,7 +9,7 @@ import { SpecWatcher } from './watcher.js';
 import { SpecParser } from './parser.js';
 import open from 'open';
 import { WebSocket } from 'ws';
-import { findAvailablePort, validateAndCheckPort } from './utils.js';
+import { findAvailablePort, validateAndCheckPort, checkExistingDashboard } from './utils.js';
 import { ApprovalStorage } from './approval-storage.js';
 import { parseTasksFromMarkdown } from '../core/task-parser.js';
 import { SpecArchiveService } from '../core/archive-service.js';
@@ -37,6 +37,7 @@ export class DashboardServer {
   private actualPort: number = 0;
   private clients: Set<WebSocket> = new Set();
   private packageVersion: string = 'unknown';
+  private isUsingExistingDashboard: boolean = false;
 
   constructor(options: DashboardOptions) {
     this.options = options;
@@ -633,6 +634,20 @@ export class DashboardServer {
 
     // Allocate port - use custom port if provided, otherwise use ephemeral port
     if (this.options.port) {
+      // Check if dashboard is already running on this port
+      const existingDashboard = await checkExistingDashboard(this.options.port);
+      
+      if (existingDashboard) {
+        this.actualPort = this.options.port;
+        this.isUsingExistingDashboard = true;
+        const existingUrl = `http://localhost:${this.actualPort}`;
+        console.error(`Dashboard already running at ${existingUrl} - connecting to existing instance`);
+        
+        // Don't start a new server, just return the existing URL
+        // Note: We don't open browser again since it's already running
+        return existingUrl;
+      }
+      
       // Validate and check custom port availability
       await validateAndCheckPort(this.options.port);
       this.actualPort = this.options.port;
@@ -745,6 +760,13 @@ export class DashboardServer {
   }
 
   async stop() {
+    // If we connected to an existing dashboard, we shouldn't stop it
+    // Only stop if we actually started our own server
+    if (this.isUsingExistingDashboard) {
+      console.error('Using existing dashboard instance - not stopping it');
+      return;
+    }
+    
     // Close all WebSocket connections with proper cleanup
     this.clients.forEach((client) => {
       try {

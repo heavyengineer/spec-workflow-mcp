@@ -80,18 +80,61 @@ export class SpecWorkflowMCPServer {
       
       // Start dashboard if requested
       if (dashboardOptions?.autoStart) {
-        this.dashboardServer = new DashboardServer({
-          projectPath: this.projectPath,
-          autoOpen: true,  // Auto-open browser when dashboard is auto-started
-          port: dashboardOptions.port
-        });
-        this.dashboardUrl = await this.dashboardServer.start();
-        
-        // Create session tracking (overwrites any existing session.json)
-        await this.sessionManager.createSession(this.dashboardUrl);
-        
-        // Log dashboard startup info
-        console.error(`Dashboard auto-started at: ${this.dashboardUrl}`);
+        try {
+          this.dashboardServer = new DashboardServer({
+            projectPath: this.projectPath,
+            autoOpen: true,  // Auto-open browser when dashboard is auto-started
+            port: dashboardOptions.port
+          });
+          this.dashboardUrl = await this.dashboardServer.start();
+          
+          // Create session tracking (overwrites any existing session.json)
+          await this.sessionManager.createSession(this.dashboardUrl);
+          
+          // Log dashboard startup info
+          console.error(`Dashboard auto-started at: ${this.dashboardUrl}`);
+        } catch (dashboardError: any) {
+          // Check if it's a port conflict error
+          if (dashboardError.message.includes('already in use') && dashboardOptions.port) {
+            // Try to check if an existing dashboard is running
+            console.error(`Port ${dashboardOptions.port} is already in use, checking for existing dashboard...`);
+            
+            try {
+              const response = await fetch(`http://localhost:${dashboardOptions.port}/api/test`, {
+                method: 'GET',
+                signal: AbortSignal.timeout(1000)
+              });
+              
+              if (response.ok) {
+                const data = await response.json() as { message?: string };
+                if (data.message === 'MCP Workflow Dashboard Online!') {
+                  // Existing dashboard found, use it
+                  this.dashboardUrl = `http://localhost:${dashboardOptions.port}`;
+                  console.error(`Found existing dashboard at ${this.dashboardUrl} - connecting to it`);
+                  
+                  // Update session with existing dashboard URL
+                  await this.sessionManager.createSession(this.dashboardUrl);
+                } else {
+                  console.error(`Port ${dashboardOptions.port} is in use by another service (not our dashboard)`);
+                  console.error('MCP server will continue without dashboard functionality');
+                }
+              } else {
+                console.error(`Port ${dashboardOptions.port} is in use but service is not responding`);
+                console.error('MCP server will continue without dashboard functionality');
+              }
+            } catch {
+              console.error(`Port ${dashboardOptions.port} is in use by another service`);
+              console.error('MCP server will continue without dashboard functionality');
+            }
+          } else {
+            // Some other dashboard error
+            console.error(`Failed to start dashboard: ${dashboardError.message}`);
+            console.error('MCP server will continue without dashboard functionality');
+          }
+          
+          // Clear dashboard server reference since we didn't successfully create one
+          this.dashboardServer = undefined;
+        }
       }
       
       // Create context for tools
