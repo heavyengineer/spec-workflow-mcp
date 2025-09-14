@@ -4,6 +4,13 @@ All notable changes to the "spec-workflow-mcp" extension will be documented in t
 
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
+## [1.0.0]
+
+### Updated
+- Updated task parser to support the new structured prompt format.
+
+**NOTE: Extension version is now in sync with MCP server version and out of beta.**
+
 ## [0.0.11]
 
 ### Fixed

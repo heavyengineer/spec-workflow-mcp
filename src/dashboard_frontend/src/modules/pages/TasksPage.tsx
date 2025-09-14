@@ -1069,8 +1069,7 @@ function TaskList({ specName }: { specName: string }) {
                           <div className="text-xs sm:text-sm text-indigo-900 dark:text-indigo-100 bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800 rounded px-3 py-2 whitespace-pre-wrap break-words">
                             {task.prompt}
                           </div>
-                        )}
-                      </div>
+                        )}                      </div>
                     )}
                   </div>
                 </div>

@@ -78,7 +78,7 @@ async function createConfig() {
         output: {
           entryFileNames: '[name].js',
           chunkFileNames: '[name].js',
-          assetFileNames: (assetInfo) => {
+          assetFileNames: (assetInfo: any) => {
             // Force CSS files to be named globals.css
             if (assetInfo.name?.endsWith('.css')) {
               return 'globals.css';

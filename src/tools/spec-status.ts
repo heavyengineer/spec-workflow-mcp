@@ -8,7 +8,7 @@ export const specStatusTool: Tool = {
   description: `Display comprehensive specification progress overview.
 
 # Instructions
-Call when resuming work on a spec or checking overall completion status. Shows which phases are complete and task implementation progress. Useful for understanding where you are in the workflow before continuing.`,
+Call when resuming work on a spec or checking overall completion status. Shows which phases are complete and task implementation progress. After viewing status, read tasks.md directly to see all tasks and their status markers ([ ] pending, [-] in-progress, [x] completed).`,
   inputSchema: {
     type: 'object',
     properties: {
@@ -96,31 +96,33 @@ export async function specStatusHandler(args: any, context: ToolContext): Promis
     const nextSteps = [];
     switch (currentPhase) {
       case 'requirements':
-        nextSteps.push('Create requirements.md');
-        nextSteps.push('Load context with get-steering-context');
+        nextSteps.push('Read template: .spec-workflow/templates/requirements-template-v*.md');
+        nextSteps.push('Create: .spec-workflow/specs/{name}/requirements.md');
         nextSteps.push('Request approval');
         break;
       case 'design':
-        nextSteps.push('Create design.md');
-        nextSteps.push('Reference requirements');
+        nextSteps.push('Read template: .spec-workflow/templates/design-template-v*.md');
+        nextSteps.push('Create: .spec-workflow/specs/{name}/design.md');
         nextSteps.push('Request approval');
         break;
       case 'tasks':
-        nextSteps.push('Create tasks.md');
-        nextSteps.push('Break down design');
+        nextSteps.push('Read template: .spec-workflow/templates/tasks-template-v*.md');
+        nextSteps.push('Create: .spec-workflow/specs/{name}/tasks.md');
         nextSteps.push('Request approval');
         break;
       case 'implementation':
         if (spec.taskProgress && spec.taskProgress.pending > 0) {
-          nextSteps.push('Use manage-tasks with next-pending');
-          nextSteps.push('Implement tasks');
-          nextSteps.push('Update status with manage-tasks');
+          nextSteps.push(`Read tasks: .spec-workflow/specs/${specName}/tasks.md`);
+          nextSteps.push('Edit tasks.md: Change [ ] to [-] for task you start');
+          nextSteps.push('Implement the task code');
+          nextSteps.push('Edit tasks.md: Change [-] to [x] when completed');
         } else {
-          nextSteps.push('Begin implementation with manage-tasks');
+          nextSteps.push(`Read tasks: .spec-workflow/specs/${specName}/tasks.md`);
+          nextSteps.push('Begin implementation by marking first task [-]');
         }
         break;
       case 'completed':
-        nextSteps.push('Spec complete');
+        nextSteps.push('All tasks completed (marked [x])');
         nextSteps.push('Run tests');
         break;
     }
@@ -151,14 +153,15 @@ export async function specStatusHandler(args: any, context: ToolContext): Promis
       }
     };
     
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return {
       success: false,
-      message: `Failed to get specification status: ${error.message}`,
+      message: `Failed to get specification status: ${errorMessage}`,
       nextSteps: [
         'Check if the specification exists',
         'Verify the project path',
-        'Use spec-list to see available specifications'
+        'List directory .spec-workflow/specs/ to see available specifications'
       ]
     };
   }

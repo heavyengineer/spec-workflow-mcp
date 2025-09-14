@@ -974,8 +974,7 @@ Review the existing steering documents (if any) and help me improve or complete 
                                   </div>
                                 )}
                               </div>
-                            )}
-                          </div>
+                            )}                          </div>
                         </div>
                       </CardContent>
                     </Card>

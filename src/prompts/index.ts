@@ -5,19 +5,21 @@ import { PromptDefinition, PromptHandler } from './types.js';
 // Import individual prompt definitions
 import { createSpecPrompt } from './create-spec.js';
 import { createSteeringDocPrompt } from './create-steering-doc.js';
-import { manageTasksPrompt } from './manage-tasks.js';
-import { requestApprovalPrompt } from './request-approval.js';
+import { implementTaskPrompt } from './implement-task.js';
 import { specStatusPrompt } from './spec-status.js';
-import { workflowGuidePrompt } from './workflow-guide.js';
+import { injectSpecWorkflowGuidePrompt } from './inject-spec-workflow-guide.js';
+import { injectSteeringGuidePrompt } from './inject-steering-guide.js';
+import { refreshTasksPrompt } from './refresh-tasks.js';
 
 // Registry of all prompts
 const promptDefinitions: PromptDefinition[] = [
   createSpecPrompt,
   createSteeringDocPrompt,
-  manageTasksPrompt,
-  requestApprovalPrompt,
+  implementTaskPrompt,
   specStatusPrompt,
-  workflowGuidePrompt
+  injectSpecWorkflowGuidePrompt,
+  injectSteeringGuidePrompt,
+  refreshTasksPrompt
 ];
 
 /**

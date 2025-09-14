@@ -42,9 +42,9 @@ ${context.dashboardUrl ? `- Dashboard: ${context.dashboardUrl}` : ''}
 **Instructions:**
 ${specName ? 
   `1. Use the spec-status tool with specName "${specName}" to get status information
-2. If you need detailed task information, use the manage-tasks tool with action "status"
-3. Check for any pending approvals using get-approval-status tool` :
-  `1. Use the spec-list tool to get all specifications
+2. If you need detailed task information, read the tasks.md file directly at .spec-workflow/specs/${specName}/tasks.md
+3. Check for any pending approvals using approvals tool with action:'status'` :
+  `1. List directory .spec-workflow/specs/ to see all specifications
 2. Use the spec-status tool to get status for each specification
 3. Provide a consolidated overview of project progress`}
 

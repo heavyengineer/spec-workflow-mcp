@@ -207,11 +207,11 @@ interface ExpansionRoadmap {
 ## 🎯 Key Concepts
 
 ### MCP Tools
-The server provides 13 MCP tools for spec-driven development:
+The server provides 12 MCP tools for spec-driven development:
 - **Workflow Tools**: `spec-workflow-guide`, `steering-guide`
 - **Content Tools**: `create-spec-doc`, `create-steering-doc`, `get-template-context`
 - **Search Tools**: `get-spec-context`, `get-steering-context`, `spec-list`
-- **Status Tools**: `spec-status`, `manage-tasks`, `refresh-tasks`
+- **Status Tools**: `spec-status`, `manage-tasks`
 - **Approval Tools**: `request-approval`, `get-approval-status`, `delete-approval`
 
 ### File Organization

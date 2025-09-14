@@ -95,6 +95,11 @@ export interface TaskProgressData {
   inProgress?: string;
 }
 
+export interface PromptSection {
+  key: string;
+  value: string;
+}
+
 export interface TaskInfo {
   id: string;
   description: string;
@@ -107,9 +112,9 @@ export interface TaskInfo {
   leverage?: string;
   purposes?: string[];
   prompt?: string;
+  promptStructured?: PromptSection[];
   inProgress?: boolean; // For backward compatibility
 }
-
 export interface ApprovalComment {
   id: string;
   text: string;

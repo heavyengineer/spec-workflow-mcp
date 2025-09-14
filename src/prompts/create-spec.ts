@@ -5,7 +5,7 @@ import { ToolContext } from '../types.js';
 const prompt: Prompt = {
   name: 'create-spec',
   title: 'Create Specification Document',
-  description: 'Interactive workflow for creating spec documents (requirements, design, or tasks). Guides you through the spec-driven development process with contextual templates and best practices.',
+  description: 'Guide for creating spec documents directly in the file system. Shows how to use templates and create requirements, design, or tasks documents at the correct paths.',
   arguments: [
     {
       name: 'specName',
@@ -53,20 +53,36 @@ ${description ? `- Description: ${description}` : ''}
 ${context.dashboardUrl ? `- Dashboard: ${context.dashboardUrl}` : ''}
 
 **Instructions:**
-1. First, use the get-template-context tool to load the ${documentType} template
+1. First, read the template at: .spec-workflow/templates/${documentType}-template.md
 2. Follow the template structure exactly - this ensures consistency across the project
 3. Create comprehensive content that follows spec-driven development best practices
 4. Include all required sections from the template
 5. Use clear, actionable language
-6. After creating the document, use the create-spec-doc tool to save it
+6. Create the document at: .spec-workflow/specs/${specName}/${documentType}.md
+7. After creating, use approvals tool with action:'request' to get user approval
+
+**File Paths:**
+- Template location: .spec-workflow/templates/${documentType}-template.md
+- Document destination: .spec-workflow/specs/${specName}/${documentType}.md
 
 **Workflow Guidelines:**
 - Requirements documents define WHAT needs to be built
 - Design documents define HOW it will be built  
 - Tasks documents break down implementation into actionable steps
 - Each document builds upon the previous one in sequence
+- Templates are automatically updated on server start
 
-Please start by loading the ${documentType} template and then create the comprehensive document.`
+${documentType === 'tasks' ? `
+**Special Instructions for Tasks Document:**
+- For each task, generate a _Prompt field with structured AI guidance
+- Format: _Prompt: Role: [role] | Task: [description] | Restrictions: [constraints] | Success: [criteria]
+- Make prompts specific to the project context and requirements
+- Include _Leverage fields pointing to existing code to reuse
+- Include _Requirements fields showing which requirements each task implements
+- Tasks should be atomic (1-3 files each) and in logical order
+` : ''}
+
+Please read the ${documentType} template and create the comprehensive document at the specified path.`
       }
     }
   ];

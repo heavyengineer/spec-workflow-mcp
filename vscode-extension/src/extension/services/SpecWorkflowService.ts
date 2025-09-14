@@ -618,9 +618,8 @@ export class SpecWorkflowService {
       this.logger.log('TaskProgressData taskList count:', taskProgressData.taskList.length);
       this.logger.log('Sample task (2.2):', taskProgressData.taskList.find(t => t.id === '2.2'));
       this.logger.log('All tasks with metadata:', taskProgressData.taskList.filter(t => 
-        t.requirements?.length || t.implementationDetails?.length || t.files?.length || t.purposes?.length || t.leverage
-      ).map(t => ({ id: t.id, requirements: t.requirements, implementationDetails: t.implementationDetails })));
-      
+        t.requirements?.length || t.implementationDetails?.length || t.files?.length || t.purposes?.length || t.leverage || t.prompt
+      ).map(t => ({ id: t.id, hasPrompt: !!t.prompt, promptLength: t.prompt?.length, requirements: t.requirements, implementationDetails: t.implementationDetails })));      
       return taskProgressData;
     } catch (error) {
       this.logger.error(`Failed to get task progress for ${specName}:`, error);
@@ -657,9 +656,13 @@ export class SpecWorkflowService {
       purposes: task.purposes,
       // Preserve parsed AI prompt for UI and copy functionality
       prompt: task.prompt,
-      inProgress: task.inProgress
-    }));
+      inProgress: task.inProgress    }));
     
+    this.logger.log('Tasks with prompts:', tasks.filter(t => t.prompt).map(t => ({
+      id: t.id,
+      promptLength: t.prompt?.length,
+      promptPreview: t.prompt?.substring(0, 50)
+    })));
     this.logger.log('Converted tasks:', tasks.map(t => ({
       id: t.id,
       description: t.description,

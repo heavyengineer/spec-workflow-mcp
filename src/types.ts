@@ -45,6 +45,11 @@ export interface SteeringStatus {
   lastModified?: string;
 }
 
+export interface PromptSection {
+  key: string;
+  value: string;
+}
+
 export interface TaskInfo {
   id: string;
   description: string;
@@ -52,8 +57,9 @@ export interface TaskInfo {
   requirements?: string;
   completed: boolean;
   details?: string[];
+  prompt?: string;
+  promptStructured?: PromptSection[];
 }
-
 export interface ToolResponse {
   success: boolean;
   message: string;

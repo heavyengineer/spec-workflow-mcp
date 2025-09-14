@@ -111,45 +111,53 @@ export function parseTasksFromMarkdown(content: string): TaskParserResult {
       }
       
       // Check for metadata patterns
-      if (contentLine.includes('_Requirements:')) {
-        const reqMatch = contentLine.match(/_Requirements:\s*(.+?)_?$/);
-        if (reqMatch) {
-          const reqText = reqMatch[1].replace(/_$/, '');
-          // Split by comma or space and filter out empty/NFR
-          requirements.push(...reqText.split(/[,\s]+/).filter(r => r && r !== 'NFR'));
+      // IMPORTANT: Check for _Prompt: first since it can contain nested _Requirements: and _Leverage:
+      if (contentLine.includes('_Prompt:')) {
+        // Capture everything after _Prompt: until the final closing underscore
+        const promptMatch = contentLine.match(/_Prompt:\s*(.+)_$/);
+        if (promptMatch) {
+          prompt = promptMatch[1].trim();
+        } else {
+          // If no closing underscore on same line, capture multi-line
+          const afterPrompt = contentLine.match(/_Prompt:\s*(.+)$/);
+          let promptText = afterPrompt ? afterPrompt[1] : '';
+          promptText = promptText.replace(/_$/, '').trim();
+
+          // Accumulate continuation lines that are not new bullets/metadata
+          let j = lineIdx + 1;
+          while (j < endLine) {
+            const nextTrim = lines[j].trim();
+            if (!nextTrim) break; // stop at blank line
+            // Stop if we hit another bullet/metadata marker or files/purpose sections
+            if (
+              /^-\s/.test(nextTrim) ||
+              /^Files?:/i.test(nextTrim) ||
+              /^Purpose:/i.test(nextTrim)
+            ) {
+              break;
+            }
+            promptText += ' ' + nextTrim.replace(/_$/, '').trim();
+            j++;
+          }
+          prompt = promptText;
+          // Skip consumed continuation lines
+          lineIdx = j - 1;
         }
-      } else if (contentLine.includes('_Leverage:')) {
-        const levMatch = contentLine.match(/_Leverage:\s*(.+?)_?$/);
+      } else if (contentLine.includes('_Requirements:') && !contentLine.includes('_Prompt:')) {
+        // Only process if not inside a prompt
+        const reqMatch = contentLine.match(/_Requirements:\s*([^_]+?)_/);
+        if (reqMatch) {
+          const reqText = reqMatch[1].trim();
+          // Split by comma and filter out empty/NFR
+          requirements.push(...reqText.split(',').map(r => r.trim()).filter(r => r && r !== 'NFR'));
+        }
+      } else if (contentLine.includes('_Leverage:') && !contentLine.includes('_Prompt:')) {
+        // Only process if not inside a prompt
+        const levMatch = contentLine.match(/_Leverage:\s*([^_]+?)_/);
         if (levMatch) {
-          const levText = levMatch[1].replace(/_$/, '');
+          const levText = levMatch[1].trim();
           leverage.push(...levText.split(',').map(l => l.trim()).filter(l => l));
         }
-      } else if (contentLine.includes('_Prompt:')) {
-        // Capture single-line prompt and optional multi-line continuation
-        const afterPrompt = contentLine.match(/_Prompt:\s*(.+)$/);
-        let promptText = afterPrompt ? afterPrompt[1] : '';
-        promptText = promptText.replace(/_$/, '').trim();
-
-        // Accumulate continuation lines that are not new bullets/metadata
-        let j = lineIdx + 1;
-        while (j < endLine) {
-          const nextTrim = lines[j].trim();
-          if (!nextTrim) break; // stop at blank line
-          // Stop if we hit another bullet/metadata marker or files/purpose sections
-          if (
-            /^-\s/.test(nextTrim) ||
-            /^_?(Requirements|Leverage|Prompt):/i.test(nextTrim) ||
-            /^Files?:/i.test(nextTrim) ||
-            /^Purpose:/i.test(nextTrim)
-          ) {
-            break;
-          }
-          promptText += ' ' + nextTrim.replace(/_$/, '').trim();
-          j++;
-        }
-        prompt = promptText;
-        // Skip consumed continuation lines
-        lineIdx = j - 1;
       } else if (contentLine.match(/Files?:/)) {
         const fileMatch = contentLine.match(/Files?:\s*(.+)$/);
         if (fileMatch) {
