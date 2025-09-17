@@ -20,7 +20,6 @@ RUN npm ci --only=production
 
 # Copy built application and necessary resources
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/src/locales ./src/locales
 
 RUN mkdir -p /workspace
 
