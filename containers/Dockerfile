@@ -33,4 +33,4 @@ WORKDIR /workspace
 
 EXPOSE 3000
 
-CMD node /app/dist/index.js ${SPEC_WORKFLOW_PATH:-/workspace} --dashboard --port ${DASHBOARD_PORT:-3000}
+CMD ["sh", "-c", "node /app/dist/index.js ${SPEC_WORKFLOW_PATH:-/workspace} --dashboard --port ${DASHBOARD_PORT:-3000}"]
