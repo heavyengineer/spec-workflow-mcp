@@ -23,11 +23,20 @@ COPY --from=builder /app/dist ./dist
 
 RUN mkdir -p /workspace
 
-# Change ownership of the app directory to the node user (uid=1000)
-RUN chown -R node:node /app /workspace
+# Create a user with matching UID/GID (can be overridden at runtime)
+ARG USER_ID=1000
+ARG GROUP_ID=1000
 
-# Switch to the node user to match host user permissions
-USER node
+# Use existing node user/group if UID/GID is 1000, otherwise create new user
+RUN if [ "$USER_ID" = "1000" ] && [ "$GROUP_ID" = "1000" ]; then \
+        echo "Using existing node user"; \
+    else \
+        addgroup -g $GROUP_ID appgroup && \
+        adduser -D -u $USER_ID -G appgroup appuser; \
+    fi
+
+# Switch to the appropriate user (node for 1000:1000, appuser otherwise)
+USER ${USER_ID}
 
 WORKDIR /workspace
 
