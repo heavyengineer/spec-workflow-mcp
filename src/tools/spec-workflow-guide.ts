@@ -23,7 +23,7 @@ export async function specWorkflowGuideHandler(args: any, context: ToolContext):
 
   const dashboardMessage = dashboardUrl ?
     `Monitor progress on dashboard: ${dashboardUrl}` :
-    'Dashboard not available - running in headless mode';
+    'Please start the dashboard or use VS Code extension "Spec Workflow MCP"';
 
   return {
     success: true,

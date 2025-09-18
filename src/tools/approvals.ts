@@ -188,7 +188,7 @@ async function handleRequestApproval(
 
     return {
       success: true,
-      message: `Approval request created successfully. Please review in dashboard: ${context.dashboardUrl || 'Dashboard URL not available'} or VS Code extension 'Spec Workflow MCP'`,
+      message: `Approval request created successfully. Please review in dashboard: ${context.dashboardUrl || 'Please start the dashboard or use VS Code extension "Spec Workflow MCP"'}`,
       data: {
         approvalId,
         title: args.title,

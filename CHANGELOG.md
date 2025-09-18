@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2025-09-18
+
+### Changed
+- Removed references to a headless mode that would confuse confusion for the agent in rare instances where the user would only start the dashboard after beginning the spec workflow.
+
+### Fixed
+- Fixed a bug where users couldnt start multiple instances of the MCP / Dashboard within the same project.
+
 ## [1.0.0] - 2025-09-13
 
 **NOTE: This version brings major architectural changes to the project. However they are non breaking changes.**
