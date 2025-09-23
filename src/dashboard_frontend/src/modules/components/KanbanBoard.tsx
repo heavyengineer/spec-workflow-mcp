@@ -1,14 +1,14 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback, useRef } from 'react';
 import {
   DndContext,
   DragEndEvent,
   DragOverlay,
   DragStartEvent,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   closestCenter,
-  pointerWithin,
   useDroppable,
 } from '@dnd-kit/core';
 import {
@@ -52,12 +52,51 @@ export function KanbanBoard({
 }: KanbanBoardProps) {
   const { t } = useTranslation();
   const [activeTask, setActiveTask] = React.useState<Task | null>(null);
+  const scrollPositionRef = useRef({ x: 0, y: 0 });
 
-  // Setup sensors for drag and drop - includes touch support
+  // Scroll lock utilities
+  const lockScroll = useCallback(() => {
+    // Store current scroll position
+    scrollPositionRef.current = {
+      x: window.scrollX,
+      y: window.scrollY
+    };
+
+    // Prevent scrolling by setting overflow hidden on body
+    document.body.style.overflow = 'hidden';
+    document.body.style.touchAction = 'none';
+
+    // Maintain scroll position
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollPositionRef.current.y}px`;
+    document.body.style.left = `-${scrollPositionRef.current.x}px`;
+    document.body.style.width = '100%';
+  }, []);
+
+  const unlockScroll = useCallback(() => {
+    // Restore body styles
+    document.body.style.overflow = '';
+    document.body.style.touchAction = '';
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.left = '';
+    document.body.style.width = '';
+
+    // Restore scroll position
+    window.scrollTo(scrollPositionRef.current.x, scrollPositionRef.current.y);
+  }, []);
+
+  // Setup sensors for drag and drop - includes improved touch support
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8, // Require 8px of movement before drag starts
+        distance: 10, // Require 10px of movement before drag starts
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 250, // 250ms delay for touch devices
+        tolerance: 8, // 8px tolerance for touch
       },
     })
   );
@@ -75,11 +114,17 @@ export function KanbanBoard({
   const handleDragStart = (event: DragStartEvent) => {
     const task = tasks.find(t => t.id === event.active.id);
     setActiveTask(task || null);
+
+    // Lock scroll when drag starts
+    lockScroll();
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveTask(null);
+
+    // Unlock scroll when drag ends
+    unlockScroll();
 
     // Debug logging
     console.log('[KanbanBoard] Drag end event:', {
@@ -267,9 +312,13 @@ export function KanbanBoard({
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={pointerWithin}
+      collisionDetection={closestCenter}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
+      onDragCancel={() => {
+        setActiveTask(null);
+        unlockScroll();
+      }}
     >
       <div className={`flex flex-col md:flex-row gap-3 md:gap-4 w-full ${
         columnsToShow.length === 1 ? 'md:justify-center' : ''
@@ -280,9 +329,18 @@ export function KanbanBoard({
       </div>
 
       {/* Drag Overlay */}
-      <DragOverlay>
+      <DragOverlay
+        style={{
+          zIndex: 9999,
+        }}
+      >
         {activeTask ? (
-          <div className="rotate-2 opacity-95 transform scale-105">
+          <div
+            className="rotate-2 opacity-95 transform scale-105 pointer-events-none"
+            style={{
+              cursor: 'grabbing',
+            }}
+          >
             <KanbanTaskCard
               task={activeTask}
               specName={specName}

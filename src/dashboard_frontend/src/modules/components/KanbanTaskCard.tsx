@@ -99,13 +99,18 @@ export function KanbanTaskCard({
   return (
     <div
       ref={setNodeRef}
-      style={style}
+      style={{
+        ...style,
+        touchAction: 'none', // Prevent default touch actions during drag
+      }}
       {...attributes}
       {...listeners}
-      className={`p-2 sm:p-3 rounded-lg border cursor-grab active:cursor-grabbing transition-all hover:shadow-md touch-manipulation ${
+      className={`p-2 sm:p-3 rounded-lg border cursor-grab active:cursor-grabbing transition-all hover:shadow-md touch-manipulation select-none ${
         config.bgColor
       } ${config.borderColor} ${
         isDragging ? 'rotate-2 scale-105 shadow-lg' : ''
+      } ${
+        isSortableDragging ? 'z-50' : ''
       }`}
     >
       {/* Task Header */}
@@ -136,6 +141,9 @@ export function KanbanTaskCard({
               : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
           }`}
           title={t('tasksPage.copyPrompt.tooltip')}
+          style={{
+            touchAction: 'manipulation', // Allow touch events for the button
+          }}
         >
           {copiedTaskId === task.id ? (
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
