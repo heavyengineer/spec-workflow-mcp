@@ -9,18 +9,14 @@ import { useTranslation } from 'react-i18next';
 
 function formatDate(dateStr?: string, t?: (k: string, o?: any) => string) {
   if (!dateStr) return t ? t('common.unknown') : 'Unknown';
-  return new Date(dateStr).toLocaleDateString(undefined, { 
-    month: 'short', 
-    day: 'numeric', 
-    hour: '2-digit', 
-    minute: '2-digit' 
+  return new Date(dateStr).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
   });
 }
 
-function getApprovalPreview(approval: any) {
-  if (!approval) return '';
-  return approval.content ? String(approval.content).substring(0, 200) : '';
-}
 
 function ApprovalItem({ a }: { a: any }) {
   const { approvalsAction, getApprovalContent } = useApi();
@@ -102,36 +98,36 @@ function ApprovalItem({ a }: { a: any }) {
       setRevisionWarningModalOpen(true);
       return;
     }
-    
+
     const general = comments.filter(c => c.type === 'general');
     const selections = comments.filter(c => c.type === 'selection');
     let summary = `Feedback Summary (${comments.length} comments):\n\n`;
-    
+
     if (general.length) {
       summary += 'General Comments:\n';
       general.forEach((c, i) => { summary += `${i + 1}. ${c.comment}\n`; });
       summary += '\n';
     }
-    
+
     if (selections.length) {
       summary += 'Specific Text Comments:\n';
-      selections.forEach((c, i) => { 
-        const t = (c.selectedText || ''); 
-        summary += `${i + 1}. "${t.substring(0, 50)}${t.length > 50 ? '...' : ''}": ${c.comment}\n`; 
+      selections.forEach((c, i) => {
+        const t = (c.selectedText || '');
+        summary += `${i + 1}. "${t.substring(0, 50)}${t.length > 50 ? '...' : ''}": ${c.comment}\n`;
       });
     }
-    
+
     const payload = {
       response: summary,
-      annotations: JSON.stringify({ 
-        decision: 'needs-revision', 
-        comments, 
-        summary, 
-        timestamp: new Date().toISOString() 
+      annotations: JSON.stringify({
+        decision: 'needs-revision',
+        comments,
+        summary,
+        timestamp: new Date().toISOString()
       }, null, 2),
       comments,
     };
-    
+
     setActionLoading('revision');
     try {
       await approvalsAction(a.id, 'needs-revision', payload);
@@ -166,7 +162,7 @@ function ApprovalItem({ a }: { a: any }) {
             {/* Approval Status */}
             <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-sm mb-3">
               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                a.status === 'pending' 
+                a.status === 'pending'
                   ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
                   : a.status === 'needs-revision'
                   ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
@@ -197,37 +193,7 @@ function ApprovalItem({ a }: { a: any }) {
                 </svg>
                 {formatDate(a.createdAt, t)}
               </span>
-
-              {a.type && (
-                <span className="inline-flex items-center text-xs text-blue-600 dark:text-blue-400">
-                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  {a.type}
-                </span>
-              )}
             </div>
-
-            {/* Preview Content */}
-            {!open && (
-              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 sm:p-4 md:p-6 mb-3 sm:mb-4 md:mb-6">
-                <div className="text-xs sm:text-sm md:text-base text-gray-600 dark:text-gray-400 max-h-24 sm:max-h-32 md:max-h-40 overflow-y-auto">
-                  {loading ? (
-                    <div className="flex items-center">
-                      <svg className="animate-spin -ml-1 mr-2 sm:mr-3 h-3 w-3 sm:h-4 sm:w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      <span className="text-xs sm:text-sm">{t('common.loadingContent')}</span>
-                    </div>
-                  ) : (
-                    <div className="text-xs leading-relaxed break-words overflow-hidden">
-                      {content ? (content.length > 250 ? content.slice(0, 250) + '...' : content) : t('common.noContentAvailable')}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
 
             {/* Action Buttons */}
             <div className="flex flex-wrap items-center gap-2 sm:gap-3 min-w-0">
@@ -311,17 +277,17 @@ function ApprovalItem({ a }: { a: any }) {
           </div>
         </div>
       </div>
-      
+
       {open && (
         <div className="border-t border-gray-200 dark:border-gray-700 p-3 sm:p-4 lg:p-6 min-w-0 overflow-hidden relative">
-          <ApprovalsAnnotator 
-            content={content} 
-            comments={comments} 
-            onCommentsChange={setComments} 
-            viewMode={viewMode} 
-            setViewMode={setViewMode} 
+          <ApprovalsAnnotator
+            content={content}
+            comments={comments}
+            onCommentsChange={setComments}
+            viewMode={viewMode}
+            setViewMode={setViewMode}
           />
-          
+
           {/* Navigation FABs - show on mobile and tablet (hide only on desktop lg+) */}
           {viewMode === 'annotate' && (
             <div className="fixed bottom-4 right-4 flex flex-col gap-2 z-40 lg:hidden">
@@ -335,7 +301,7 @@ function ApprovalItem({ a }: { a: any }) {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 10l7-7m0 0l7 7m-7-7v18" />
                 </svg>
               </button>
-              
+
               {/* Scroll to Comments FAB - at the bottom */}
               <button
                 onClick={scrollToComments}
@@ -387,32 +353,32 @@ function Content() {
   const { approvals } = useApi();
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const { t } = useTranslation();
-  
+
   // Get unique categories from approvals
   const categories = useMemo(() => {
     const cats = new Set<string>();
     cats.add('all');
     approvals.forEach(a => {
-      if (a.categoryName) {
-        cats.add(a.categoryName);
+      if ((a as any).categoryName) {
+        cats.add((a as any).categoryName);
       }
     });
     return Array.from(cats);
   }, [approvals]);
-  
+
   // Filter approvals based on selected category
   const filteredApprovals = useMemo(() => {
     if (filterCategory === 'all') {
       return approvals;
     }
-    return approvals.filter(a => a.categoryName === filterCategory);
+    return approvals.filter(a => (a as any).categoryName === filterCategory);
   }, [approvals, filterCategory]);
-  
+
   // Calculate pending count for header display
   const pendingCount = useMemo(() => {
     return filteredApprovals.filter(a => a.status === 'pending').length;
   }, [filteredApprovals]);
-  
+
   return (
     <div className="grid gap-4">
       {/* Header */}
@@ -426,8 +392,8 @@ function Content() {
         </div>
         <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-            pendingCount > 0 
-              ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' 
+            pendingCount > 0
+              ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
               : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
           }`}>
             {t('approvalsPage.pendingCount', { count: pendingCount })}
@@ -435,7 +401,7 @@ function Content() {
         </div>
         </div>
       </div>
-      
+
       {/* Filter Dropdown */}
       {categories.length > 1 && (
         <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
@@ -448,8 +414,8 @@ function Content() {
             >
               {categories.map(cat => (
                 <option key={cat} value={cat}>
-                  {cat === 'all' ? t('approvalsPage.filter.options.all') : 
-                   cat === 'steering' ? t('approvalsPage.filter.options.steering') : 
+                  {cat === 'all' ? t('approvalsPage.filter.options.all') :
+                   cat === 'steering' ? t('approvalsPage.filter.options.steering') :
                    cat}
                 </option>
               ))}
