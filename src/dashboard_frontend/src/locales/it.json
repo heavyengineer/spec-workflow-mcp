@@ -214,6 +214,23 @@
       "design": "Design",
       "tasks": "Task"
     },
+    "table": {
+      "name": "Nome",
+      "progress": "Progresso",
+      "lastModified": "Ultima Modifica",
+      "actions": "Azioni"
+    },
+    "sort": {
+      "defaultOrder": "Ordine Predefinito",
+      "defaultOrderDesc": "Ordine originale delle specifiche",
+      "name": "Nome",
+      "nameDesc": "Ordina alfabeticamente per nome",
+      "progress": "Progresso",
+      "progressDesc": "Ordina per percentuale task completati",
+      "lastModified": "Ultima Modifica",
+      "lastModifiedDesc": "Ordina per data di modifica"
+    },
+    "noTasks": "Nessun task",
     "search": {
       "placeholder": {
         "active": "Cerca spec attive...",
@@ -222,7 +239,9 @@
     },
     "empty": {
       "title": "Nessun Documento Disponibile",
-      "description": "Questa spec non ha ancora documenti creati."
+      "description": "Questa spec non ha ancora documenti creati.",
+      "noResults": "Nessuna specifica trovata",
+      "noResultsDescription": "Prova ad aggiustare la ricerca o i filtri"
     },
     "tabs": {
       "active": "Attive",

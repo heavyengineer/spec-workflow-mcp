@@ -4,6 +4,7 @@ import { useWs } from '../ws/WebSocketProvider';
 import { Markdown } from '../markdown/Markdown';
 import { MarkdownEditor } from '../editor/MarkdownEditor';
 import { ConfirmationModal } from '../modals/ConfirmationModal';
+import { SortDropdown } from '../components/SortDropdown';
 import { useTranslation } from 'react-i18next';
 
 function formatDate(dateStr?: string, t?: (k: string, o?: any) => string) {
@@ -446,80 +447,345 @@ function SpecCard({ spec, onOpenModal, isArchived }: { spec: any; onOpenModal: (
   );
 }
 
+function SpecTableRow({ spec, onOpenModal, isArchived }: { spec: any; onOpenModal: (spec: any) => void; isArchived: boolean }) {
+  const { archiveSpec, unarchiveSpec } = useApi();
+  const { t } = useTranslation();
+  const [isArchiving, setIsArchiving] = useState(false);
+  const progress = spec.taskProgress?.total
+    ? Math.round((spec.taskProgress.completed / spec.taskProgress.total) * 100)
+    : 0;
+
+  const handleArchiveToggle = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsArchiving(true);
+
+    try {
+      if (isArchived) {
+        await unarchiveSpec(spec.name);
+      } else {
+        await archiveSpec(spec.name);
+      }
+    } catch (error) {
+      console.error('Failed to toggle archive status:', error);
+    } finally {
+      setIsArchiving(false);
+    }
+  };
+
+
+  return (
+    <tr
+      className="hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors"
+      onClick={() => onOpenModal(spec)}
+    >
+      <td className="px-4 py-4">
+        <div className="flex items-center">
+          <div className="flex-shrink-0 w-10 h-10 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
+            <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <div className="ml-4">
+            <div className={`text-sm font-medium ${
+              spec.status === 'completed'
+                ? 'text-gray-600 dark:text-gray-400'
+                : 'text-gray-900 dark:text-white'
+            }`}>
+              {spec.displayName}
+            </div>
+            <div className="text-sm text-gray-500 dark:text-gray-400">
+              {spec.name}
+            </div>
+          </div>
+        </div>
+      </td>
+      <td className="px-4 py-4">
+        {spec.taskProgress && spec.taskProgress.total > 0 ? (
+          <div className="flex items-center gap-2">
+            <div className="w-20 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+              <div
+                className="bg-blue-600 dark:bg-blue-500 h-2 rounded-full transition-all duration-300"
+                style={{"width": `${progress}%`} as React.CSSProperties}
+              />
+            </div>
+            <span className="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
+              {spec.taskProgress.completed}/{spec.taskProgress.total}
+            </span>
+          </div>
+        ) : (
+          <span className="text-sm text-gray-500 dark:text-gray-400">
+            {t('specsPage.noTasks')}
+          </span>
+        )}
+      </td>
+      <td className="px-4 py-4 text-sm text-gray-500 dark:text-gray-400">
+        {formatDate(spec.lastModified, t)}
+      </td>
+      <td className="px-4 py-4">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleArchiveToggle}
+            disabled={isArchiving}
+            className={`p-2 rounded-lg transition-colors ${
+              isArchiving
+                ? 'text-gray-400 cursor-not-allowed'
+                : isArchived
+                  ? 'text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:text-blue-400 dark:hover:text-blue-300 dark:hover:bg-blue-900/20'
+                  : 'text-orange-600 hover:text-orange-700 hover:bg-orange-50 dark:text-orange-400 dark:hover:text-orange-300 dark:hover:bg-orange-900/20'
+            }`}
+            title={isArchiving ? 'Processing...' : isArchived ? 'Unarchive spec' : 'Archive spec'}
+          >
+            {isArchiving ? (
+              <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            ) : isArchived ? (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 8l4 4 4-4m0 6l-4 4-4-4" />
+              </svg>
+            )}
+          </button>
+          <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+          </svg>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
 function Content() {
   const { specs, archivedSpecs, reloadAll } = useApi();
   const [query, setQuery] = useState('');
   const [selectedSpec, setSelectedSpec] = useState<any | null>(null);
   const [activeTab, setActiveTab] = useState<'active' | 'archived'>('active');
+  const [sortBy, setSortBy] = useState('default');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const { t } = useTranslation();
 
   useEffect(() => { reloadAll(); }, [reloadAll]);
 
   const currentSpecs = activeTab === 'active' ? specs : archivedSpecs;
 
+  // Sorting function
+  const sortSpecs = useCallback((specs: any[]) => {
+    if (sortBy === 'default') {
+      return specs;
+    }
+
+    return [...specs].sort((a, b) => {
+      let compareValue = 0;
+
+      switch (sortBy) {
+        case 'name':
+          compareValue = a.displayName.localeCompare(b.displayName);
+          break;
+        case 'progress':
+          const aProgress = a.taskProgress?.total ? (a.taskProgress.completed / a.taskProgress.total) : 0;
+          const bProgress = b.taskProgress?.total ? (b.taskProgress.completed / b.taskProgress.total) : 0;
+          compareValue = aProgress - bProgress;
+          break;
+        case 'lastModified':
+          const aDate = new Date(a.lastModified || 0).getTime();
+          const bDate = new Date(b.lastModified || 0).getTime();
+          compareValue = aDate - bDate;
+          break;
+        default:
+          return 0;
+      }
+
+      return sortOrder === 'asc' ? compareValue : -compareValue;
+    });
+  }, [sortBy, sortOrder]);
+
+
+  // Combined filtering and sorting
   const filtered = useMemo(() => {
+    let result = currentSpecs;
+
+    // Apply text search filter
     const q = query.trim().toLowerCase();
-    if (!q) return currentSpecs;
-    return currentSpecs.filter((s) => s.displayName.toLowerCase().includes(q) || s.name.toLowerCase().includes(q));
-  }, [currentSpecs, query]);
+    if (q) {
+      result = result.filter((s) => s.displayName.toLowerCase().includes(q) || s.name.toLowerCase().includes(q));
+    }
+
+
+    // Apply sorting
+    result = sortSpecs(result);
+
+    return result;
+  }, [currentSpecs, query, sortSpecs]);
+
+
+  const handleSortChange = (sort: string, order: string) => {
+    setSortBy(sort);
+    setSortOrder(order as 'asc' | 'desc');
+  };
+
+
+  // Sort options for specs
+  const specSortOptions = [
+    {
+      id: 'default',
+      label: t('specsPage.sort.defaultOrder'),
+      description: t('specsPage.sort.defaultOrderDesc'),
+      icon: (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      )
+    },
+    {
+      id: 'name',
+      label: t('specsPage.sort.name'),
+      description: t('specsPage.sort.nameDesc'),
+      icon: (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
+        </svg>
+      )
+    },
+    {
+      id: 'progress',
+      label: t('specsPage.sort.progress'),
+      description: t('specsPage.sort.progressDesc'),
+      icon: (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+      )
+    },
+    {
+      id: 'lastModified',
+      label: t('specsPage.sort.lastModified'),
+      description: t('specsPage.sort.lastModifiedDesc'),
+      icon: (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      )
+    }
+  ];
 
   return (
     <div className="grid gap-4">
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4 sm:p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-          <div className="flex-1 min-w-0">
-            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">{t('specsPage.header.title')}</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              {activeTab === 'active' 
-                ? t('specsPage.header.subtitle.active')
-                : t('specsPage.header.subtitle.archived')
-              }
-            </p>
-          </div>
-          <input 
-            className="px-3 py-2 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full sm:w-auto" 
-            placeholder={activeTab === 'active' ? t('specsPage.search.placeholder.active') : t('specsPage.search.placeholder.archived')}
-            value={query} 
-            onChange={(e) => setQuery(e.target.value)} 
-          />
+        <div className="mb-4">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">{t('specsPage.header.title')}</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            {activeTab === 'active'
+              ? t('specsPage.header.subtitle.active')
+              : t('specsPage.header.subtitle.archived')
+            }
+          </p>
         </div>
         
-        {/* Tab Navigation */}
-        <div className="border-b border-gray-200 dark:border-gray-700">
-          <nav className="flex space-x-8">
-            <button
-              onClick={() => setActiveTab('active')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'active'
-                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:border-gray-300'
-              } transition-colors`}
-            >
-              {t('specsPage.tabs.active')} ({specs.length})
-            </button>
-            <button
-              onClick={() => setActiveTab('archived')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'archived'
-                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:border-gray-300'
-              } transition-colors`}
-            >
-              {t('specsPage.tabs.archived')} ({archivedSpecs.length})
-            </button>
-          </nav>
+        {/* Tab Navigation and Controls */}
+        <div>
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 py-2">
+            <nav className="flex space-x-8">
+              <button
+                onClick={() => setActiveTab('active')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'active'
+                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:border-gray-300'
+                } transition-colors`}
+              >
+                {t('specsPage.tabs.active')} ({specs.length})
+              </button>
+              <button
+                onClick={() => setActiveTab('archived')}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'archived'
+                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:border-gray-300'
+                } transition-colors`}
+              >
+                {t('specsPage.tabs.archived')} ({archivedSpecs.length})
+              </button>
+            </nav>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              <input
+                className="min-w-[140px] md:min-w-[160px] px-3 py-2 md:px-4 md:py-2 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                placeholder={activeTab === 'active' ? t('specsPage.search.placeholder.active') : t('specsPage.search.placeholder.archived')}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+              <SortDropdown
+                currentSort={sortBy}
+                currentOrder={sortOrder}
+                onSortChange={handleSortChange}
+                sortOptions={specSortOptions}
+              />
+            </div>
+          </div>
         </div>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {filtered.map((s) => (
-          <SpecCard 
-            key={s.name} 
-            spec={s} 
-            onOpenModal={setSelectedSpec} 
-            isArchived={activeTab === 'archived'}
-          />
-        ))}
+
+        {/* Specs Table - Desktop */}
+        <div className="overflow-x-auto hidden lg:block">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-900">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  {t('specsPage.table.name')}
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  {t('specsPage.table.progress')}
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  {t('specsPage.table.lastModified')}
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  {t('specsPage.table.actions')}
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              {filtered.map((spec) => (
+                <SpecTableRow
+                  key={spec.name}
+                  spec={spec}
+                  onOpenModal={setSelectedSpec}
+                  isArchived={activeTab === 'archived'}
+                />
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Specs Cards - Mobile/Tablet */}
+        <div className="lg:hidden space-y-3 md:space-y-4">
+          {filtered.map((spec) => (
+            <SpecCard
+              key={spec.name}
+              spec={spec}
+              onOpenModal={setSelectedSpec}
+              isArchived={activeTab === 'archived'}
+            />
+          ))}
+        </div>
+
+        {/* Empty State */}
+        {filtered.length === 0 && (
+          <div className="text-center py-12 mt-8 border-t border-gray-200 dark:border-gray-700">
+            <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <p className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+              {query ? t('specsPage.empty.noResults') : t('specsPage.empty.title')}
+            </p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              {query ? t('specsPage.empty.noResultsDescription') : t('specsPage.empty.description')}
+            </p>
+          </div>
+        )}
       </div>
 
       <SpecModal 

@@ -214,6 +214,23 @@
       "design": "Conception",
       "tasks": "Tâches"
     },
+    "table": {
+      "name": "Nom",
+      "progress": "Progrès",
+      "lastModified": "Dernière Modification",
+      "actions": "Actions"
+    },
+    "sort": {
+      "defaultOrder": "Ordre par Défaut",
+      "defaultOrderDesc": "Ordre original des spécifications",
+      "name": "Nom",
+      "nameDesc": "Trier alphabétiquement par nom",
+      "progress": "Progrès",
+      "progressDesc": "Trier par pourcentage de tâches terminées",
+      "lastModified": "Dernière Modification",
+      "lastModifiedDesc": "Trier par date de modification"
+    },
+    "noTasks": "Aucune tâche",
     "search": {
       "placeholder": {
         "active": "Rechercher des spécifications actives...",
@@ -222,7 +239,9 @@
     },
     "empty": {
       "title": "Aucun Document Disponible",
-      "description": "Cette spécification n'a pas encore de documents créés."
+      "description": "Cette spécification n'a pas encore de documents créés.",
+      "noResults": "Aucune spécification trouvée",
+      "noResultsDescription": "Essayez d'ajuster votre recherche ou vos filtres"
     },
     "tabs": {
       "active": "Actives",

@@ -214,6 +214,23 @@
       "design": "設計",
       "tasks": "タスク"
     },
+    "table": {
+      "name": "名前",
+      "progress": "進捗",
+      "lastModified": "最終更新",
+      "actions": "アクション"
+    },
+    "sort": {
+      "defaultOrder": "デフォルト順",
+      "defaultOrderDesc": "元の仕様の順序",
+      "name": "名前",
+      "nameDesc": "名前順でソート",
+      "progress": "進捗",
+      "progressDesc": "タスク完了率でソート",
+      "lastModified": "最終更新",
+      "lastModifiedDesc": "更新日時でソート"
+    },
+    "noTasks": "タスクなし",
     "search": {
       "placeholder": {
         "active": "アクティブな仕様を検索...",
@@ -222,7 +239,9 @@
     },
     "empty": {
       "title": "ドキュメントはありません",
-      "description": "この仕様にはまだドキュメントが作成されていません。"
+      "description": "この仕様にはまだドキュメントが作成されていません。",
+      "noResults": "仕様が見つかりません",
+      "noResultsDescription": "検索条件やフィルターを調整してください"
     },
     "tabs": {
       "active": "アクティブ",

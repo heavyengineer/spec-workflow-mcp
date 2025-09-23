@@ -1,18 +1,26 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
+interface SortOption {
+  id: string;
+  label: string;
+  description: string;
+  icon: React.ReactNode;
+}
+
 interface SortDropdownProps {
   currentSort: string;
   currentOrder: string;
   onSortChange: (sort: string, order: string) => void;
+  sortOptions?: SortOption[];
 }
 
-export function SortDropdown({ currentSort, currentOrder, onSortChange }: SortDropdownProps) {
+export function SortDropdown({ currentSort, currentOrder, onSortChange, sortOptions }: SortDropdownProps) {
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const sortOptions = [
+  const defaultSortOptions = [
     {
       id: 'default',
       label: t('tasksPage.sort.defaultOrder'),
@@ -55,7 +63,8 @@ export function SortDropdown({ currentSort, currentOrder, onSortChange }: SortDr
     }
   ];
 
-  const currentSortOption = sortOptions.find(option => option.id === currentSort) || sortOptions[0];
+  const actualSortOptions = sortOptions || defaultSortOptions;
+  const currentSortOption = actualSortOptions.find(option => option.id === currentSort) || actualSortOptions[0];
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -126,7 +135,7 @@ export function SortDropdown({ currentSort, currentOrder, onSortChange }: SortDr
       {isOpen && (
         <div className="absolute top-full mt-1 w-full sm:w-64 md:w-72 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-50 max-h-80 overflow-hidden">
           <div className="py-1">
-            {sortOptions.map((option) => {
+            {actualSortOptions.map((option) => {
               const isCurrentSort = currentSort === option.id;
               const orderIcon = getOrderIcon(isCurrentSort);
               

@@ -214,6 +214,23 @@
       "design": "التصميم",
       "tasks": "المهام"
     },
+    "table": {
+      "name": "الاسم",
+      "progress": "التقدم",
+      "lastModified": "آخر تعديل",
+      "actions": "الإجراءات"
+    },
+    "sort": {
+      "defaultOrder": "الترتيب الافتراضي",
+      "defaultOrderDesc": "ترتيب المواصفات الأصلي",
+      "name": "الاسم",
+      "nameDesc": "ترتيب أبجدي حسب الاسم",
+      "progress": "التقدم",
+      "progressDesc": "ترتيب حسب نسبة إكمال المهام",
+      "lastModified": "آخر تعديل",
+      "lastModifiedDesc": "ترتيب حسب تاريخ التعديل"
+    },
+    "noTasks": "لا توجد مهام",
     "search": {
       "placeholder": {
         "active": "البحث في المواصفات النشطة...",
@@ -222,7 +239,9 @@
     },
     "empty": {
       "title": "لا توجد وثائق متاحة",
-      "description": "هذه المواصفة لا تحتوي على وثائق تم إنشاؤها بعد."
+      "description": "هذه المواصفة لا تحتوي على وثائق تم إنشاؤها بعد.",
+      "noResults": "لم يتم العثور على مواصفات",
+      "noResultsDescription": "حاول تعديل البحث أو المرشحات"
     },
     "tabs": {
       "active": "نشط",
