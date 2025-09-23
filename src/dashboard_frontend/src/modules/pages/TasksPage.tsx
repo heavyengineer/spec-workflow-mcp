@@ -9,11 +9,11 @@ import { KanbanBoard } from '../components/KanbanBoard';
 
 function formatDate(dateStr?: string, t?: (k: string, o?: any) => string) {
   if (!dateStr) return t ? t('common.never') : 'Never';
-  return new Date(dateStr).toLocaleDateString(undefined, { 
-    month: 'short', 
-    day: 'numeric', 
-    hour: '2-digit', 
-    minute: '2-digit' 
+  return new Date(dateStr).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
   });
 }
 
@@ -26,8 +26,8 @@ function SearchableSpecDropdown({ specs, selected, onSelect }: { specs: any[]; s
   const filteredSpecs = useMemo(() => {
     if (!search.trim()) return specs;
     const searchLower = search.toLowerCase();
-    return specs.filter(spec => 
-      spec.displayName.toLowerCase().includes(searchLower) || 
+    return specs.filter(spec =>
+      spec.displayName.toLowerCase().includes(searchLower) ||
       spec.name.toLowerCase().includes(searchLower)
     );
   }, [specs, search]);
@@ -66,10 +66,10 @@ function SearchableSpecDropdown({ specs, selected, onSelect }: { specs: any[]; s
         <span className="truncate">
           {selectedSpec ? selectedSpec.displayName : t('tasksPage.dropdown.selectPlaceholder')}
         </span>
-        <svg 
-          className={`w-4 h-4 ml-2 transition-transform ${isOpen ? 'rotate-180' : ''}`} 
-          fill="none" 
-          stroke="currentColor" 
+        <svg
+          className={`w-4 h-4 ml-2 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+          fill="none"
+          stroke="currentColor"
           viewBox="0 0 24 24"
         >
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
@@ -89,7 +89,7 @@ function SearchableSpecDropdown({ specs, selected, onSelect }: { specs: any[]; s
               autoFocus
             />
           </div>
-          
+
           {/* Options List */}
           <div className="max-h-60 overflow-y-auto">
             {filteredSpecs.length > 0 ? (
@@ -137,7 +137,7 @@ function SearchableSpecDropdown({ specs, selected, onSelect }: { specs: any[]; s
 function copyTaskPrompt(specName: string, task: any, onSuccess?: () => void, onFailure?: (text: string) => void) {
   // Use custom prompt if available, otherwise fallback to default
   const command = task.prompt || `Please work on task ${task.id} for spec "${specName}"`;
-  
+
   // Try modern clipboard API first
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(command).then(() => {
@@ -162,7 +162,7 @@ function fallbackCopy(text: string, onSuccess?: () => void, onFailure?: (text: s
   document.body.appendChild(textArea);
   textArea.focus();
   textArea.select();
-  
+
   try {
     const successful = document.execCommand('copy');
     if (!successful) {
@@ -189,16 +189,16 @@ function scrollToTask(taskId: string) {
   }
 }
 
-function StatusPill({ 
-  currentStatus, 
-  taskId, 
-  specName, 
-  onStatusChange, 
-  disabled = false 
-}: { 
-  currentStatus: 'pending' | 'in-progress' | 'completed'; 
-  taskId: string; 
-  specName: string; 
+function StatusPill({
+  currentStatus,
+  taskId,
+  specName,
+  onStatusChange,
+  disabled = false
+}: {
+  currentStatus: 'pending' | 'in-progress' | 'completed';
+  taskId: string;
+  specName: string;
   onStatusChange?: (newStatus: 'pending' | 'in-progress' | 'completed') => void;
   disabled?: boolean;
 }) {
@@ -271,12 +271,12 @@ function StatusPill({
       const result = await updateTaskStatus(specName, taskId, newStatus);
       if (result.ok) {
         onStatusChange?.(newStatus);
-        
+
         // Show success notification
-        const statusLabel = newStatus === 'completed' 
-          ? t('tasksPage.statusPill.completed') 
-          : newStatus === 'in-progress' 
-            ? t('tasksPage.statusPill.inProgress') 
+        const statusLabel = newStatus === 'completed'
+          ? t('tasksPage.statusPill.completed')
+          : newStatus === 'in-progress'
+            ? t('tasksPage.statusPill.inProgress')
             : t('tasksPage.statusPill.pending');
         showNotification(t('tasksPage.notifications.statusUpdated', { taskId, status: statusLabel }), 'success');
       } else {
@@ -335,8 +335,8 @@ function StatusPill({
               key={status}
               onClick={() => handleStatusUpdate(status as 'pending' | 'in-progress' | 'completed')}
               className={`w-full px-3 py-2 text-xs text-left transition-colors flex items-center gap-2 ${
-                status === currentStatus 
-                  ? `${statusConf.bgColor} ${statusConf.textColor}` 
+                status === currentStatus
+                  ? `${statusConf.bgColor} ${statusConf.textColor}`
                   : 'hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
               } ${status === currentStatus ? 'cursor-default' : 'cursor-pointer'}`}
               disabled={status === currentStatus}
@@ -361,9 +361,9 @@ function SpecCard({ spec, onSelect, isSelected }: { spec: any; onSelect: (spec: 
   const progress = spec.taskProgress?.total
     ? Math.round((spec.taskProgress.completed / spec.taskProgress.total) * 100)
     : 0;
-  
+
   return (
-    <div 
+    <div
       className={`bg-white dark:bg-gray-800 shadow rounded-lg cursor-pointer hover:shadow-lg transition-all ${
         isSelected ? 'ring-2 ring-blue-500' : ''
       } ${
@@ -375,15 +375,15 @@ function SpecCard({ spec, onSelect, isSelected }: { spec: any; onSelect: (spec: 
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
             <h3 className={`text-base sm:text-lg md:text-xl font-medium mb-2 truncate ${
-              spec.status === 'completed' 
-                ? 'text-gray-600 dark:text-gray-400' 
+              spec.status === 'completed'
+                ? 'text-gray-600 dark:text-gray-400'
                 : 'text-gray-900 dark:text-white'
             }`}>
               {spec.displayName}
             </h3>
             <div className={`flex flex-col sm:flex-row sm:items-center sm:space-x-4 text-xs sm:text-sm md:text-base space-y-1 sm:space-y-0 ${
-              spec.status === 'completed' 
-                ? 'text-gray-400 dark:text-gray-500' 
+              spec.status === 'completed'
+                ? 'text-gray-400 dark:text-gray-500'
                 : 'text-gray-500 dark:text-gray-400'
             }`}>
               <span className="flex items-center gap-1">
@@ -436,7 +436,7 @@ function TaskList({ specName }: { specName: string }) {
   const [showScrollToTop, setShowScrollToTop] = useState(false);
   const [copiedTaskId, setCopiedTaskId] = useState<string | null>(null);
   const [expandedPrompts, setExpandedPrompts] = useState<Set<string>>(new Set());
-  
+
   // Filter and sort state
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'in-progress' | 'completed'>('all');
   const [sortBy, setSortBy] = useState<'default' | 'status' | 'id' | 'description'>('default');
@@ -467,7 +467,7 @@ function TaskList({ specName }: { specName: string }) {
       console.warn('Failed to load task preferences from localStorage:', error);
     }
   }, [storageKey]);
-  
+
   // Save preferences to localStorage
   useEffect(() => {
     try {
@@ -527,10 +527,10 @@ function TaskList({ specName }: { specName: string }) {
   // Helper functions
   const filterTasksByStatus = useCallback((tasks: any[]) => {
     if (statusFilter === 'all') return tasks;
-    
+
     return tasks.filter((task: any) => {
       if (task.isHeader) return true; // Always include headers
-      
+
       switch (statusFilter) {
         case 'pending':
           return task.status === 'pending';
@@ -543,19 +543,19 @@ function TaskList({ specName }: { specName: string }) {
       }
     });
   }, [statusFilter]);
-  
+
   const sortTasks = useCallback((tasks: any[]) => {
     if (sortBy === 'default') return tasks;
-    
+
     const sorted = [...tasks].sort((a: any, b: any) => {
       // Headers always stay at the top
       if (a.isHeader && !b.isHeader) return -1;
       if (!a.isHeader && b.isHeader) return 1;
       if (a.isHeader && b.isHeader) return 0;
-      
+
       let aValue: string | number;
       let bValue: string | number;
-      
+
       switch (sortBy) {
         case 'status':
           // Sort by status priority: pending -> in-progress -> completed
@@ -574,15 +574,15 @@ function TaskList({ specName }: { specName: string }) {
         default:
           return 0;
       }
-      
+
       if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
       if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
       return 0;
     });
-    
+
     return sorted;
   }, [sortBy, sortOrder]);
-  
+
   const getTaskCounts = useCallback((tasks: any[]) => {
     const counts = {
       all: 0,
@@ -590,27 +590,27 @@ function TaskList({ specName }: { specName: string }) {
       'in-progress': 0,
       completed: 0
     };
-    
+
     tasks?.forEach((task: any) => {
       if (!task.isHeader) {
         counts.all++;
         counts[task.status as keyof typeof counts]++;
       }
     });
-    
+
     return counts;
   }, []);
-  
+
   // Create filtered and sorted task list
   const filteredAndSortedTasks = useMemo(() => {
     if (!data?.taskList) return [];
-    
+
     const filtered = filterTasksByStatus(data.taskList);
     const sorted = sortTasks(filtered);
-    
+
     return sorted;
   }, [data?.taskList, filterTasksByStatus, sortTasks]);
-  
+
   const taskCounts = useMemo(() => getTaskCounts(data?.taskList), [data?.taskList, getTaskCounts]);
 
   // Toggle prompt expansion
@@ -638,7 +638,7 @@ function TaskList({ specName }: { specName: string }) {
     window.addEventListener('scroll', handleScroll);
     // Initial check
     handleScroll();
-    
+
     return () => window.removeEventListener('scroll', handleScroll);
   }, [filteredAndSortedTasks]);
 
@@ -666,7 +666,7 @@ function TaskList({ specName }: { specName: string }) {
       </div>
     );
   }
-  
+
   if (!data) {
     return (
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
@@ -682,20 +682,6 @@ function TaskList({ specName }: { specName: string }) {
 
   return (
     <div className="grid gap-4">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4 sm:p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white truncate">
-              {t('tasksPage.header.title')}: {specName.replace(/-/g, ' ')}
-            </h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              {t('tasksPage.header.subtitle.selected')}
-            </p>
-          </div>
-        </div>
-      </div>
-      
       {/* Stats Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         {/* Total Tasks Card */}
@@ -856,7 +842,7 @@ function TaskList({ specName }: { specName: string }) {
             )}
           </div>
         </div>
-        
+
         {/* Results Summary */}
         {statusFilter !== 'all' && (
           <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
@@ -867,7 +853,7 @@ function TaskList({ specName }: { specName: string }) {
               <span>
                 {t('tasksPage.showingTasksWithStatus', { count: filteredAndSortedTasks.filter((t: any) => !t.isHeader).length, status: statusFilter.replace('-', ' ') })}
                 {filteredAndSortedTasks.filter((t: any) => !t.isHeader).length === 0 && (
-                  <span> - <button 
+                  <span> - <button
                     onClick={() => setStatusFilter('all')}
                     className="underline hover:no-underline"
                   >
@@ -878,7 +864,7 @@ function TaskList({ specName }: { specName: string }) {
             </div>
           </div>
         )}
-        
+
         {/* Content Area - Conditional Rendering based on View Mode */}
         {viewMode === 'kanban' ? (
           filteredAndSortedTasks.length === 0 ? (
@@ -1283,13 +1269,13 @@ function Content() {
   const [selected, setSelected] = useState<string>('');
   const [query, setQuery] = useState('');
   const [copyFailureModal, setCopyFailureModal] = useState<{ isOpen: boolean; text: string }>({ isOpen: false, text: '' });
-  
+
   const handleCopyFailure = (text: string) => {
     setCopyFailureModal({ isOpen: true, text });
   };
 
   // Create project-scoped storage key
-  const storageKey = useMemo(() => 
+  const storageKey = useMemo(() =>
     info?.projectName ? `spec-workflow:${info.projectName}:selectedSpec` : null,
     [info?.projectName]
   );
@@ -1297,14 +1283,14 @@ function Content() {
   // Handle spec selection with URL and localStorage sync
   const handleSelectSpec = useCallback((specName: string) => {
     setSelected(specName);
-    
+
     // Update URL parameter
     if (specName) {
       setParams({ spec: specName });
     } else {
       setParams({});
     }
-    
+
     // Save to localStorage (project-scoped)
     if (storageKey) {
       if (specName) {
@@ -1314,11 +1300,11 @@ function Content() {
       }
     }
   }, [storageKey, setParams]);
-  
+
   useEffect(() => { reloadAll(); }, [reloadAll]);
 
   // Initialize spec selection with three-tier approach
-  useEffect(() => { 
+  useEffect(() => {
     if (specFromUrl) {
       // 1. URL parameter takes precedence (source of truth)
       if (specs.some(s => s.name === specFromUrl)) {
@@ -1358,19 +1344,27 @@ function Content() {
 
   // If a spec is selected, show its task details
   if (selected) {
+    // Get selected spec for dynamic title
+    const selectedSpec = specs.find(s => s.name === selected);
+
     return (
       <div className="grid gap-4">
         {/* Header with Spec Selector */}
         <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex-1 min-w-0">
-            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">{t('tasksPage.header.title')}</h2>
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white truncate">
+              {selectedSpec
+                ? `${t('tasksPage.header.title')}: ${selectedSpec.displayName}`
+                : t('tasksPage.header.title')
+              }
+            </h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               {t('tasksPage.header.subtitle.selected')}
             </p>
           </div>
           <div className="flex items-center gap-3">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">{t('tasksPage.labels.spec')}</label>
-            <SearchableSpecDropdown 
+            <SearchableSpecDropdown
               specs={specs}
               selected={selected}
               onSelect={handleSelectSpec}
@@ -1392,21 +1386,21 @@ function Content() {
             {t('tasksPage.header.subtitle.unselected')}
           </p>
         </div>
-        <input 
-          className="px-3 py-2 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full sm:w-auto" 
-          placeholder={t('tasksPage.search.placeholder')} 
-          value={query} 
-          onChange={(e) => setQuery(e.target.value)} 
+        <input
+          className="px-3 py-2 rounded-lg bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full sm:w-auto"
+          placeholder={t('tasksPage.search.placeholder')}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
         />
       </div>
-      
+
       {/* Spec Selection Grid */}
       {filtered.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((spec) => (
-            <SpecCard 
-              key={spec.name} 
-              spec={spec} 
+            <SpecCard
+              key={spec.name}
+              spec={spec}
               onSelect={(s) => handleSelectSpec(s.name)}
               isSelected={selected === spec.name}
             />

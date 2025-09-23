@@ -221,12 +221,12 @@ export function KanbanBoard({
           strategy={verticalListSortingStrategy}
         >
           <div
-            className={`flex-1 p-2 sm:p-3 min-h-[200px] space-y-2 transition-colors duration-200 ${
+            className={`flex-1 p-2 sm:p-3 space-y-2 transition-colors duration-200 max-h-[70vh] overflow-y-auto ${
               isOver ? 'bg-blue-50 dark:bg-blue-900/10' : ''
             }`}
           >
             {columnTasks.length === 0 ? (
-              <div className="text-center py-8 text-gray-400 dark:text-gray-500">
+              <div className="flex items-center justify-center min-h-[120px] text-center py-4 text-gray-400 dark:text-gray-500">
                 <div className="text-xs">
                   {status === 'pending' && t('tasksPage.kanban.noPendingTasks', 'No pending tasks')}
                   {status === 'in-progress' && t('tasksPage.kanban.noInProgressTasks', 'No tasks in progress')}
@@ -271,7 +271,7 @@ export function KanbanBoard({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className={`flex flex-col md:flex-row gap-3 md:gap-4 h-full min-h-[500px] md:min-h-[600px] ${
+      <div className={`flex flex-col md:flex-row gap-3 md:gap-4 w-full ${
         columnsToShow.length === 1 ? 'md:justify-center' : ''
       } ${
         columnsToShow.length === 1 ? 'md:max-w-md md:mx-auto' : ''
