@@ -383,46 +383,46 @@ function Content() {
     <div className="grid gap-4">
       {/* Header */}
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4 sm:p-6 md:p-8 max-w-full">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex-1 min-w-0">
-          <h2 className="text-lg sm:text-xl md:text-2xl font-semibold text-gray-900 dark:text-white">{t('approvalsPage.header.title')}</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            {t('approvalsPage.header.subtitle')}
-          </p>
-        </div>
-        <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-            pendingCount > 0
-              ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-              : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-          }`}>
-            {t('approvalsPage.pendingCount', { count: pendingCount })}
-          </span>
-        </div>
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <h2 className="text-lg sm:text-xl md:text-2xl font-semibold text-gray-900 dark:text-white">{t('approvalsPage.header.title')}</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                {t('approvalsPage.header.subtitle')}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                pendingCount > 0
+                  ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                  : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+              }`}>
+                {t('approvalsPage.pendingCount', { count: pendingCount })}
+              </span>
+            </div>
+          </div>
+
+          {/* Filter Dropdown */}
+          {categories.length > 1 && (
+            <div className="flex items-center justify-end gap-3">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">{t('approvalsPage.filter.label')}</label>
+              <select
+                value={filterCategory}
+                onChange={(e) => setFilterCategory(e.target.value)}
+                className="block w-auto rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm focus:border-blue-500 focus:ring-blue-500"
+              >
+                {categories.map(cat => (
+                  <option key={cat} value={cat}>
+                    {cat === 'all' ? t('approvalsPage.filter.options.all') :
+                     cat === 'steering' ? t('approvalsPage.filter.options.steering') :
+                     cat}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Filter Dropdown */}
-      {categories.length > 1 && (
-        <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4">
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('approvalsPage.filter.label')}</label>
-            <select
-              value={filterCategory}
-              onChange={(e) => setFilterCategory(e.target.value)}
-              className="block w-auto rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm focus:border-blue-500 focus:ring-blue-500"
-            >
-              {categories.map(cat => (
-                <option key={cat} value={cat}>
-                  {cat === 'all' ? t('approvalsPage.filter.options.all') :
-                   cat === 'steering' ? t('approvalsPage.filter.options.steering') :
-                   cat}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      )}
 
       {/* Approvals List */}
       {filteredApprovals.length === 0 ? (
