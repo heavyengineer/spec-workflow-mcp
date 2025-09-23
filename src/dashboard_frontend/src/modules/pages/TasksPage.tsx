@@ -5,6 +5,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useNotifications } from '../notifications/NotificationProvider';
 import { AlertModal } from '../modals/AlertModal';
 import { useTranslation } from 'react-i18next';
+import { KanbanBoard } from '../components/KanbanBoard';
 
 function formatDate(dateStr?: string, t?: (k: string, o?: any) => string) {
   if (!dateStr) return t ? t('common.never') : 'Never';
@@ -427,7 +428,7 @@ function SpecCard({ spec, onSelect, isSelected }: { spec: any; onSelect: (spec: 
 
 function TaskList({ specName }: { specName: string }) {
   const { t } = useTranslation();
-  const { getSpecTasksProgress } = useApi();
+  const { getSpecTasksProgress, updateTaskStatus } = useApi();
   const { subscribe, unsubscribe } = useWs();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any | null>(null);
@@ -440,7 +441,13 @@ function TaskList({ specName }: { specName: string }) {
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'in-progress' | 'completed'>('all');
   const [sortBy, setSortBy] = useState<'default' | 'status' | 'id' | 'description'>('default');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  
+
+  // View mode state
+  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
+
+  // Track pending status updates to prevent race conditions with websocket
+  const [pendingStatusUpdates, setPendingStatusUpdates] = useState<Set<string>>(new Set());
+
   // Storage key for per-spec preferences
   const storageKey = useMemo(() => `spec-workflow:task-preferences:${specName}`, [specName]);
 
@@ -449,10 +456,11 @@ function TaskList({ specName }: { specName: string }) {
     try {
       const savedPreferences = localStorage.getItem(storageKey);
       if (savedPreferences) {
-        const { statusFilter: savedStatusFilter, sortBy: savedSortBy, sortOrder: savedSortOrder } = JSON.parse(savedPreferences);
+        const { statusFilter: savedStatusFilter, sortBy: savedSortBy, sortOrder: savedSortOrder, viewMode: savedViewMode } = JSON.parse(savedPreferences);
         if (savedStatusFilter) setStatusFilter(savedStatusFilter);
         if (savedSortBy) setSortBy(savedSortBy);
         if (savedSortOrder) setSortOrder(savedSortOrder);
+        if (savedViewMode) setViewMode(savedViewMode);
       }
     } catch (error) {
       // Ignore localStorage errors
@@ -463,13 +471,13 @@ function TaskList({ specName }: { specName: string }) {
   // Save preferences to localStorage
   useEffect(() => {
     try {
-      const preferences = { statusFilter, sortBy, sortOrder };
+      const preferences = { statusFilter, sortBy, sortOrder, viewMode };
       localStorage.setItem(storageKey, JSON.stringify(preferences));
     } catch (error) {
       // Ignore localStorage errors
       console.warn('Failed to save task preferences to localStorage:', error);
     }
-  }, [storageKey, statusFilter, sortBy, sortOrder]);
+  }, [storageKey, statusFilter, sortBy, sortOrder, viewMode]);
 
   useEffect(() => {
     let active = true;
@@ -486,13 +494,23 @@ function TaskList({ specName }: { specName: string }) {
       if (event.specName === specName) {
         setData((prevData: any) => {
           if (!prevData) return prevData;
-          
+
+          // Merge websocket updates while preserving pending optimistic updates
+          const mergedTaskList = event.taskList.map((serverTask: any) => {
+            // If this task has a pending update, keep the local version
+            if (pendingStatusUpdates.has(serverTask.id)) {
+              const localTask = prevData.taskList.find((t: any) => t.id === serverTask.id);
+              return localTask || serverTask;
+            }
+            return serverTask;
+          });
+
           return {
             ...prevData,
-            taskList: event.taskList,
-            completed: event.summary.completed,
+            taskList: mergedTaskList,
+            completed: mergedTaskList.filter((t: any) => t.status === 'completed').length,
             total: event.summary.total,
-            progress: event.summary.total > 0 ? (event.summary.completed / event.summary.total) * 100 : 0,
+            progress: event.summary.total > 0 ? (mergedTaskList.filter((t: any) => t.status === 'completed').length / event.summary.total) * 100 : 0,
             inProgress: event.inProgress
           };
         });
@@ -500,11 +518,11 @@ function TaskList({ specName }: { specName: string }) {
     };
 
     subscribe('task-status-update', handleTaskStatusUpdate);
-    
+
     return () => {
       unsubscribe('task-status-update', handleTaskStatusUpdate);
     };
-  }, [specName, subscribe, unsubscribe]);
+  }, [specName, subscribe, unsubscribe, pendingStatusUpdates]);
 
   // Helper functions
   const filterTasksByStatus = useCallback((tasks: any[]) => {
@@ -755,8 +773,38 @@ function TaskList({ specName }: { specName: string }) {
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
           <h3 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white">{t('tasksPage.taskDetails')}</h3>
-          
+
           <div className="flex flex-col sm:flex-row gap-3">
+            {/* View Mode Switcher */}
+            <div className="flex items-center bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-600">
+              <button
+                onClick={() => setViewMode('list')}
+                className={`px-2 sm:px-3 py-1.5 text-sm rounded-l-lg transition-colors flex items-center gap-1 ${
+                  viewMode === 'list'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                }`}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                </svg>
+                <span className="hidden md:inline">{t('common.viewMode.list', 'List')}</span>
+              </button>
+              <button
+                onClick={() => setViewMode('kanban')}
+                className={`px-2 sm:px-3 py-1.5 text-sm rounded-r-lg transition-colors flex items-center gap-1 ${
+                  viewMode === 'kanban'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                }`}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                </svg>
+                <span className="hidden md:inline">{t('common.viewMode.kanban', 'Kanban')}</span>
+              </button>
+            </div>
+
             {/* Status Filter */}
             <div className="flex items-center gap-2">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">{t('tasksPage.status')}:</label>
@@ -771,39 +819,41 @@ function TaskList({ specName }: { specName: string }) {
                 <option value="completed">{t('tasksPage.filters.completed')} ({taskCounts.completed})</option>
               </select>
             </div>
-            
-            {/* Sort Controls */}
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">{t('tasksPage.sort.label')}:</label>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as 'default' | 'status' | 'id' | 'description')}
-                className="px-3 py-1.5 text-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="default">{t('tasksPage.sort.defaultOrder')}</option>
-                <option value="status">{t('tasksPage.sort.byStatus')}</option>
-                <option value="id">{t('tasksPage.sort.byTaskId')}</option>
-                <option value="description">{t('tasksPage.sort.byDescription')}</option>
-              </select>
-              
-              {sortBy !== 'default' && (
-                <button
-                  onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                  className="px-2 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  title={t(`tasksPage.sort.${sortOrder === 'asc' ? 'sortDescending' : 'sortAscending'}`)}
+
+            {/* Sort Controls - Hide in kanban view */}
+            {viewMode === 'list' && (
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">{t('tasksPage.sort.label')}:</label>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as 'default' | 'status' | 'id' | 'description')}
+                  className="px-3 py-1.5 text-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
-                  {sortOrder === 'asc' ? (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7" />
-                    </svg>
-                  ) : (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  )}
-                </button>
-              )}
-            </div>
+                  <option value="default">{t('tasksPage.sort.defaultOrder')}</option>
+                  <option value="status">{t('tasksPage.sort.byStatus')}</option>
+                  <option value="id">{t('tasksPage.sort.byTaskId')}</option>
+                  <option value="description">{t('tasksPage.sort.byDescription')}</option>
+                </select>
+
+                {sortBy !== 'default' && (
+                  <button
+                    onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                    className="px-2 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    title={t(`tasksPage.sort.${sortOrder === 'asc' ? 'sortDescending' : 'sortAscending'}`)}
+                  >
+                    {sortOrder === 'asc' ? (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 15l7-7 7 7" />
+                      </svg>
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    )}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
         
@@ -829,7 +879,87 @@ function TaskList({ specName }: { specName: string }) {
           </div>
         )}
         
-        {filteredAndSortedTasks.length === 0 ? (
+        {/* Content Area - Conditional Rendering based on View Mode */}
+        {viewMode === 'kanban' ? (
+          filteredAndSortedTasks.length === 0 ? (
+            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+              <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+              </svg>
+              <p className="text-lg font-medium">{t('tasksPage.noTasksFound')}</p>
+              <p className="text-sm mt-1">
+                {statusFilter !== 'all' ? (
+                  <>{t('tasksPage.noTasksWithStatus', { status: statusFilter.replace('-', ' ') })} <button
+                    onClick={() => setStatusFilter('all')}
+                    className="text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    {t('tasksPage.showAllTasks')}
+                  </button></>
+                ) : (
+                  t('tasksPage.noTasksAvailable')
+                )}
+              </p>
+            </div>
+          ) : (
+            <KanbanBoard
+              tasks={filteredAndSortedTasks}
+              specName={specName}
+              statusFilter={statusFilter}
+              onTaskStatusChange={(taskId, newStatus) => {
+                // Find the task and trigger the existing status change logic
+                const task = filteredAndSortedTasks.find(t => t.id === taskId);
+                if (task) {
+                  // Mark this task as having a pending update
+                  setPendingStatusUpdates(prev => new Set(prev).add(taskId));
+
+                  // Optimistically update the task in local data
+                  setData((prevData: any) => {
+                    if (!prevData) return prevData;
+                    const updatedTaskList = prevData.taskList.map((t: any) =>
+                      t.id === taskId ? { ...t, status: newStatus, completed: newStatus === 'completed', inProgress: newStatus === 'in-progress' } : t
+                    );
+                    return {
+                      ...prevData,
+                      taskList: updatedTaskList,
+                      completed: updatedTaskList.filter((t: any) => t.status === 'completed').length,
+                      progress: prevData.total > 0 ? (updatedTaskList.filter((t: any) => t.status === 'completed').length / prevData.total) * 100 : 0,
+                      inProgress: newStatus === 'in-progress' ? taskId : (prevData.inProgress === taskId ? null : prevData.inProgress)
+                    };
+                  });
+
+                  // Call the API to update the task status
+                  updateTaskStatus(specName, taskId, newStatus)
+                    .then(() => {
+                      // Remove from pending updates on success
+                      setPendingStatusUpdates(prev => {
+                        const next = new Set(prev);
+                        next.delete(taskId);
+                        return next;
+                      });
+                    })
+                    .catch(() => {
+                      // Remove from pending updates on error
+                      setPendingStatusUpdates(prev => {
+                        const next = new Set(prev);
+                        next.delete(taskId);
+                        return next;
+                      });
+                      // Revert on error - fetch fresh data
+                      getSpecTasksProgress(specName).then(setData);
+                    });
+                }
+              }}
+              onCopyTaskPrompt={(task) => {
+                copyTaskPrompt(specName, task, () => {
+                  setCopiedTaskId(task.id);
+                  setTimeout(() => setCopiedTaskId(null), 2000);
+                });
+              }}
+              copiedTaskId={copiedTaskId}
+              data={data}
+            />
+          )
+        ) : filteredAndSortedTasks.length === 0 ? (
           <div className="text-center py-12 text-gray-500 dark:text-gray-400">
             <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
@@ -837,7 +967,7 @@ function TaskList({ specName }: { specName: string }) {
             <p className="text-lg font-medium">{t('tasksPage.noTasksFound')}</p>
             <p className="text-sm mt-1">
               {statusFilter !== 'all' ? (
-                <>{t('tasksPage.noTasksWithStatus', { status: statusFilter.replace('-', ' ') })} <button 
+                <>{t('tasksPage.noTasksWithStatus', { status: statusFilter.replace('-', ' ') })} <button
                   onClick={() => setStatusFilter('all')}
                   className="text-blue-600 dark:text-blue-400 hover:underline"
                 >
@@ -893,7 +1023,7 @@ function TaskList({ specName }: { specName: string }) {
                       </div>
                     )}
                   </div>
-                  
+
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
                       <div className="flex items-center gap-2 min-w-0">
@@ -915,8 +1045,8 @@ function TaskList({ specName }: { specName: string }) {
                               setTimeout(() => setCopiedTaskId(null), 2000);
                             })}
                             className={`px-2 sm:px-3 py-1 sm:py-1.5 text-xs rounded transition-colors flex items-center gap-1 min-h-[32px] sm:min-h-[36px] ${
-                              copiedTaskId === task.id 
-                                ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300' 
+                              copiedTaskId === task.id
+                                ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300'
                                 : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                             }`}
                             title={t('tasksPage.copyPrompt.tooltip')}
@@ -951,10 +1081,13 @@ function TaskList({ specName }: { specName: string }) {
                             taskId={task.id}
                             specName={specName}
                             onStatusChange={(newStatus) => {
+                              // Mark this task as having a pending update
+                              setPendingStatusUpdates(prev => new Set(prev).add(task.id));
+
                               // Optimistically update the task in local data
                               setData((prevData: any) => {
                                 if (!prevData) return prevData;
-                                const updatedTaskList = prevData.taskList.map((t: any) => 
+                                const updatedTaskList = prevData.taskList.map((t: any) =>
                                   t.id === task.id ? { ...t, status: newStatus, completed: newStatus === 'completed', inProgress: newStatus === 'in-progress' } : t
                                 );
                                 return {
@@ -965,12 +1098,33 @@ function TaskList({ specName }: { specName: string }) {
                                   inProgress: newStatus === 'in-progress' ? task.id : (prevData.inProgress === task.id ? null : prevData.inProgress)
                                 };
                               });
+
+                              // Call the API to update the task status
+                              updateTaskStatus(specName, task.id, newStatus)
+                                .then(() => {
+                                  // Remove from pending updates on success
+                                  setPendingStatusUpdates(prev => {
+                                    const next = new Set(prev);
+                                    next.delete(task.id);
+                                    return next;
+                                  });
+                                })
+                                .catch(() => {
+                                  // Remove from pending updates on error
+                                  setPendingStatusUpdates(prev => {
+                                    const next = new Set(prev);
+                                    next.delete(task.id);
+                                    return next;
+                                  });
+                                  // Revert on error - fetch fresh data
+                                  getSpecTasksProgress(specName).then(setData);
+                                });
                             }}
                           />
                         )}
                       </div>
                     </div>
-                    
+
                     <p className={`text-sm sm:text-base mt-2 ${
                       task.isHeader
                         ? 'text-purple-700 dark:text-purple-300 font-medium'
@@ -1029,7 +1183,7 @@ function TaskList({ specName }: { specName: string }) {
                         <span className="break-words"><strong>Requirements:</strong> {task.requirements.join(', ')}</span>
                       </div>
                     )}
-                    
+
                     {task.leverage && (
                       <div className="text-xs sm:text-sm text-blue-600 dark:text-blue-400 mt-2 flex items-start gap-1">
                         <svg className="w-3 h-3 sm:w-4 sm:h-4 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
