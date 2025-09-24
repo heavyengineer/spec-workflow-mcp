@@ -205,8 +205,8 @@ function ApprovalItem({ a }: { a: any }) {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 shadow rounded-lg transition-colors overflow-hidden">
-      <div className="p-4 sm:p-6 md:p-8 min-w-0">
+    <div className="bg-white dark:bg-gray-800 shadow rounded-lg transition-colors overflow-hidden max-w-full">
+      <div className="p-3 sm:p-4 md:p-6 lg:p-8 min-w-0 max-w-full overflow-x-hidden">
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
             <h3 className="text-base sm:text-lg md:text-xl font-medium text-gray-900 dark:text-white mb-2 truncate">
@@ -343,15 +343,16 @@ function ApprovalItem({ a }: { a: any }) {
       </div>
 
       {open && (
-        <div className="border-t border-gray-200 dark:border-gray-700 p-3 sm:p-4 lg:p-6 min-w-0 overflow-hidden relative">
+        <div className="border-t border-gray-200 dark:border-gray-700 p-2 sm:p-3 md:p-4 lg:p-6 min-w-0 max-w-full overflow-x-hidden relative">
 
           {/* View Controls */}
           <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             {/* View Mode Tabs */}
-            <div className="flex items-center bg-white dark:bg-gray-800 rounded-lg p-1 shadow-sm border border-gray-200 dark:border-gray-600">
+            <div className="space-y-2">
+              <div className="flex items-center bg-white dark:bg-gray-800 rounded-lg p-1 shadow-sm border border-gray-200 dark:border-gray-600">
               <button
                 onClick={() => setViewMode('preview')}
-                className={`px-3 py-1.5 text-sm rounded-md transition-colors flex items-center gap-1 ${
+                className={`flex-1 px-3 py-1.5 text-sm rounded-md transition-colors flex items-center justify-center gap-1 ${
                   viewMode === 'preview'
                     ? 'bg-blue-600 text-white'
                     : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
@@ -361,11 +362,11 @@ function ApprovalItem({ a }: { a: any }) {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                 </svg>
-                Preview
+                <span className="hidden sm:inline">Preview</span>
               </button>
               <button
                 onClick={() => setViewMode('annotate')}
-                className={`px-3 py-1.5 text-sm rounded-md transition-colors flex items-center gap-1 ${
+                className={`flex-1 px-3 py-1.5 text-sm rounded-md transition-colors flex items-center justify-center gap-1 ${
                   viewMode === 'annotate'
                     ? 'bg-blue-600 text-white'
                     : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
@@ -374,12 +375,12 @@ function ApprovalItem({ a }: { a: any }) {
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                 </svg>
-                Annotate
+                <span className="hidden sm:inline">Annotate</span>
               </button>
               {snapshots.length > 0 && (
                 <button
                   onClick={() => setViewMode('diff')}
-                  className={`px-3 py-1.5 text-sm rounded-md transition-colors flex items-center gap-1 ${
+                  className={`flex-1 px-3 py-1.5 text-sm rounded-md transition-colors flex items-center justify-center gap-1 ${
                     viewMode === 'diff'
                       ? 'bg-blue-600 text-white'
                       : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
@@ -388,25 +389,23 @@ function ApprovalItem({ a }: { a: any }) {
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
-                  Changes
-                  {diff && hasDiffChanges(diff) && (
-                    <DiffStatsBadge diff={diff} className="ml-1" />
-                  )}
+                  <span className="hidden sm:inline">Changes</span>
                 </button>
               )}
+              </div>
             </div>
 
             {/* Diff Controls (only shown when in diff mode) */}
             {viewMode === 'diff' && snapshots.length > 0 && (
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              <div className="flex flex-col gap-3 overflow-x-hidden">
                 {/* Two-dropdown comparison selector */}
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2">
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">From:</label>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 min-w-0">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 min-w-0 w-full sm:w-auto">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">From:</label>
                     <select
                       value={selectedSnapshotVersion}
                       onChange={(e) => setSelectedSnapshotVersion(parseInt(e.target.value, 10))}
-                      className="block rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm focus:border-blue-500 focus:ring-blue-500"
+                      className="block w-full sm:w-auto max-w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm focus:border-blue-500 focus:ring-blue-500"
                     >
                       {snapshots.map((snapshot) => (
                         <option key={snapshot.version} value={snapshot.version}>
@@ -416,8 +415,8 @@ function ApprovalItem({ a }: { a: any }) {
                     </select>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300">To:</label>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 min-w-0 w-full sm:w-auto">
+                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">To:</label>
                     <div className="px-3 py-1.5 text-sm bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-md border border-blue-200 dark:border-blue-800">
                       📄 Current Document
                     </div>
@@ -425,37 +424,39 @@ function ApprovalItem({ a }: { a: any }) {
                 </div>
 
                 {/* Diff View Mode Toggle */}
-                <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-md p-0.5">
-                  <button
-                    onClick={() => setDiffViewMode('split')}
-                    className={`px-2 py-1 text-xs rounded transition-colors ${
-                      diffViewMode === 'split'
-                        ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                        : 'text-gray-600 dark:text-gray-400'
-                    }`}
-                  >
-                    Split
-                  </button>
-                  <button
-                    onClick={() => setDiffViewMode('unified')}
-                    className={`px-2 py-1 text-xs rounded transition-colors ${
-                      diffViewMode === 'unified'
-                        ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                        : 'text-gray-600 dark:text-gray-400'
-                    }`}
-                  >
-                    Unified
-                  </button>
-                  <button
-                    onClick={() => setDiffViewMode('inline')}
-                    className={`px-2 py-1 text-xs rounded transition-colors ${
-                      diffViewMode === 'inline'
-                        ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                        : 'text-gray-600 dark:text-gray-400'
-                    }`}
-                  >
-                    Inline
-                  </button>
+                <div className="flex items-center justify-center sm:justify-start">
+                  <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-md p-0.5">
+                    <button
+                      onClick={() => setDiffViewMode('split')}
+                      className={`px-2 py-1 text-xs rounded transition-colors ${
+                        diffViewMode === 'split'
+                          ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                          : 'text-gray-600 dark:text-gray-400'
+                      }`}
+                    >
+                      Split
+                    </button>
+                    <button
+                      onClick={() => setDiffViewMode('unified')}
+                      className={`px-2 py-1 text-xs rounded transition-colors ${
+                        diffViewMode === 'unified'
+                          ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                          : 'text-gray-600 dark:text-gray-400'
+                      }`}
+                    >
+                      Unified
+                    </button>
+                    <button
+                      onClick={() => setDiffViewMode('inline')}
+                      className={`px-2 py-1 text-xs rounded transition-colors ${
+                        diffViewMode === 'inline'
+                          ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                          : 'text-gray-600 dark:text-gray-400'
+                      }`}
+                    >
+                      Inline
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -599,9 +600,9 @@ function Content() {
   }, [filteredApprovals]);
 
   return (
-    <div className="grid gap-4">
+    <div className="grid gap-4 max-w-full overflow-x-hidden">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4 sm:p-6 md:p-8 max-w-full">
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-3 sm:p-4 md:p-6 lg:p-8 max-w-full overflow-x-hidden">
         <div className="flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex-1 min-w-0">
@@ -623,12 +624,12 @@ function Content() {
 
           {/* Filter Dropdown */}
           {categories.length > 1 && (
-            <div className="flex items-center justify-end gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-3 overflow-x-hidden">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">{t('approvalsPage.filter.label')}</label>
               <select
                 value={filterCategory}
                 onChange={(e) => setFilterCategory(e.target.value)}
-                className="block w-auto rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm focus:border-blue-500 focus:ring-blue-500"
+                className="block w-full sm:w-auto max-w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm focus:border-blue-500 focus:ring-blue-500"
               >
                 {categories.map(cat => (
                   <option key={cat} value={cat}>
@@ -645,7 +646,7 @@ function Content() {
 
       {/* Approvals List */}
       {filteredApprovals.length === 0 ? (
-        <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4 sm:p-6">
+        <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-3 sm:p-4 md:p-6 max-w-full overflow-x-hidden">
           <div className="text-center py-8 sm:py-12 text-gray-500 dark:text-gray-400">
             <svg className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-gray-400 mb-3 sm:mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -655,7 +656,7 @@ function Content() {
           </div>
         </div>
       ) : (
-        <div className="space-y-3 sm:space-y-4">
+        <div className="space-y-3 sm:space-y-4 max-w-full overflow-x-hidden">
           {filteredApprovals.map((a) => (
             <ApprovalItem key={a.id} a={a} />
           ))}
