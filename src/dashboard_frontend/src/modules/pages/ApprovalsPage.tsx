@@ -38,7 +38,7 @@ function ApprovalItem({ a }: { a: any }) {
   // Snapshot-related state
   const [snapshots, setSnapshots] = useState<DocumentSnapshot[]>([]);
   const [snapshotsLoading, setSnapshotsLoading] = useState<boolean>(false);
-  const [selectedSnapshotVersion, setSelectedSnapshotVersion] = useState<number>(1);
+  const [selectedSnapshotVersion, setSelectedSnapshotVersion] = useState<number>(-1);
   const [diff, setDiff] = useState<DiffResult | null>(null);
   const [diffLoading, setDiffLoading] = useState<boolean>(false);
 
@@ -83,9 +83,9 @@ function ApprovalItem({ a }: { a: any }) {
       .then((snaps) => {
         if (active) {
           setSnapshots(snaps);
-          // Set initial selected version to the first snapshot
+          // Set initial selected version to the last snapshot (most recent before current)
           if (snaps.length > 0) {
-            setSelectedSnapshotVersion(snaps[0].version);
+            setSelectedSnapshotVersion(snaps[snaps.length - 1].version);
           }
         }
       })
@@ -409,7 +409,7 @@ function ApprovalItem({ a }: { a: any }) {
                     >
                       {snapshots.map((snapshot) => (
                         <option key={snapshot.version} value={snapshot.version}>
-                          v{snapshot.version} - {getSnapshotTriggerDescription(snapshot.trigger)} ({formatSnapshotTimestamp(snapshot.timestamp)})
+                          v{snapshot.version} - {snapshot.approvalTitle} - {getSnapshotTriggerDescription(snapshot.trigger)} ({formatSnapshotTimestamp(snapshot.timestamp)})
                         </option>
                       ))}
                     </select>
@@ -417,47 +417,15 @@ function ApprovalItem({ a }: { a: any }) {
 
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 min-w-0 w-full sm:w-auto">
                     <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">To:</label>
-                    <div className="px-3 py-1.5 text-sm bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-md border border-blue-200 dark:border-blue-800">
-                      📄 Current Document
+                    <div
+                      className="px-3 py-1.5 text-sm bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-md border border-blue-200 dark:border-blue-800 truncate max-w-[200px]"
+                      title={a.filePath}
+                    >
+                      {a.filePath ? a.filePath.split(/[/\\]/).pop() : 'Current Document'}
                     </div>
                   </div>
                 </div>
 
-                {/* Diff View Mode Toggle */}
-                <div className="flex items-center justify-center sm:justify-start">
-                  <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-md p-0.5">
-                    <button
-                      onClick={() => setDiffViewMode('split')}
-                      className={`px-2 py-1 text-xs rounded transition-colors ${
-                        diffViewMode === 'split'
-                          ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                          : 'text-gray-600 dark:text-gray-400'
-                      }`}
-                    >
-                      Split
-                    </button>
-                    <button
-                      onClick={() => setDiffViewMode('unified')}
-                      className={`px-2 py-1 text-xs rounded transition-colors ${
-                        diffViewMode === 'unified'
-                          ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                          : 'text-gray-600 dark:text-gray-400'
-                      }`}
-                    >
-                      Unified
-                    </button>
-                    <button
-                      onClick={() => setDiffViewMode('inline')}
-                      className={`px-2 py-1 text-xs rounded transition-colors ${
-                        diffViewMode === 'inline'
-                          ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                          : 'text-gray-600 dark:text-gray-400'
-                      }`}
-                    >
-                      Inline
-                    </button>
-                  </div>
-                </div>
               </div>
             )}
           </div>
@@ -477,8 +445,41 @@ function ApprovalItem({ a }: { a: any }) {
 
               {!diffLoading && diff && hasDiffChanges(diff) && (
                 <div>
-                  <div className="mb-3">
+                  <div className="flex items-center justify-between mb-3">
                     <DiffStats diff={diff} showDetails={true} />
+                    {/* View Mode Toggle */}
+                    <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-md p-0.5">
+                      <button
+                        onClick={() => setDiffViewMode('split')}
+                        className={`px-2 py-1 text-xs rounded transition-colors ${
+                          diffViewMode === 'split'
+                            ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                            : 'text-gray-600 dark:text-gray-400'
+                        }`}
+                      >
+                        Split
+                      </button>
+                      <button
+                        onClick={() => setDiffViewMode('unified')}
+                        className={`px-2 py-1 text-xs rounded transition-colors ${
+                          diffViewMode === 'unified'
+                            ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                            : 'text-gray-600 dark:text-gray-400'
+                        }`}
+                      >
+                        Unified
+                      </button>
+                      <button
+                        onClick={() => setDiffViewMode('inline')}
+                        className={`px-2 py-1 text-xs rounded transition-colors ${
+                          diffViewMode === 'inline'
+                            ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                            : 'text-gray-600 dark:text-gray-400'
+                        }`}
+                      >
+                        Inline
+                      </button>
+                    </div>
                   </div>
                   <DiffViewer
                     diff={diff}

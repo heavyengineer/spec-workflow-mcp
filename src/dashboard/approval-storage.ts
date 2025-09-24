@@ -461,6 +461,15 @@ export class ApprovalStorage extends EventEmitter {
       };
     }
 
+    // Check for duplicate initial snapshots
+    if (trigger === 'initial') {
+      const existingInitial = metadata.snapshots.find(s => s.trigger === 'initial');
+      if (existingInitial) {
+        console.log(`Initial snapshot already exists for ${approval.filePath}, skipping creation`);
+        return;
+      }
+    }
+
     // Create new snapshot
     const version = metadata.currentVersion + 1;
     const snapshotId = `snapshot-${version.toString().padStart(3, '0')}`;
