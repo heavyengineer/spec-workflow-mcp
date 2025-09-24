@@ -105,13 +105,21 @@ export function KanbanTaskCard({
       }}
       {...attributes}
       {...listeners}
-      className={`p-2 sm:p-3 rounded-lg border cursor-grab active:cursor-grabbing transition-all hover:shadow-md touch-manipulation select-none ${
-        config.bgColor
-      } ${config.borderColor} ${
-        isDragging ? 'rotate-2 scale-105 shadow-lg' : ''
-      } ${
-        isSortableDragging ? 'z-50' : ''
-      }`}
+      className={`
+        ${/* Touch-optimized padding and spacing */ ''}
+        p-3 sm:p-3 rounded-lg border
+        ${/* Enhanced touch area */ ''}
+        min-h-[80px]
+        ${/* Cursor and interaction states */ ''}
+        cursor-grab active:cursor-grabbing
+        transition-all hover:shadow-md
+        touch-manipulation select-none
+        ${/* Colors and styling */ ''}
+        ${config.bgColor} ${config.borderColor}
+        ${/* Drag states */ ''}
+        ${isDragging ? 'rotate-2 scale-105 shadow-lg' : ''}
+        ${isSortableDragging ? 'z-50' : ''}
+      `}
     >
       {/* Task Header */}
       <div className="flex items-center justify-between mb-2">
@@ -135,11 +143,20 @@ export function KanbanTaskCard({
             e.stopPropagation();
             onCopyTaskPrompt();
           }}
-          className={`p-1.5 sm:p-1 text-xs rounded transition-colors flex items-center gap-1 touch-manipulation min-h-[32px] sm:min-h-auto ${
-            copiedTaskId === task.id
+          className={`
+            ${/* Touch-optimized sizing */ ''}
+            p-2 sm:p-1.5 text-xs rounded transition-colors
+            flex items-center justify-center gap-1
+            touch-manipulation
+            ${/* WCAG AAA compliant touch target sizes */ ''}
+            min-h-[44px] min-w-[44px]
+            sm:min-h-[36px] sm:min-w-[36px]
+            ${/* Interactive states */ ''}
+            ${copiedTaskId === task.id
               ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300'
               : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-          }`}
+            }
+          `}
           title={t('tasksPage.copyPrompt.tooltip')}
           style={{
             touchAction: 'manipulation', // Allow touch events for the button

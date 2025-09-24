@@ -53,6 +53,8 @@ export function KanbanBoard({
   const { t } = useTranslation();
   const [activeTask, setActiveTask] = React.useState<Task | null>(null);
   const scrollPositionRef = useRef({ x: 0, y: 0 });
+  const [currentScrollIndex, setCurrentScrollIndex] = React.useState(0);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Scroll lock utilities
   const lockScroll = useCallback(() => {
@@ -86,17 +88,17 @@ export function KanbanBoard({
     window.scrollTo(scrollPositionRef.current.x, scrollPositionRef.current.y);
   }, []);
 
-  // Setup sensors for drag and drop - includes improved touch support
+  // Setup sensors for drag and drop - optimized for mobile
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 10, // Require 10px of movement before drag starts
+        distance: 8, // Reduced distance for better responsiveness
       },
     }),
     useSensor(TouchSensor, {
       activationConstraint: {
-        delay: 250, // 250ms delay for touch devices
-        tolerance: 8, // 8px tolerance for touch
+        delay: 200, // Reduced delay for faster mobile response
+        tolerance: 10, // Increased tolerance for fat finger taps
       },
     })
   );
@@ -117,6 +119,12 @@ export function KanbanBoard({
 
     // Lock scroll when drag starts
     lockScroll();
+
+    // Add visual feedback for mobile drag operation
+    if ('ontouchstart' in window) {
+      document.body.style.userSelect = 'none';
+      document.body.style.webkitUserSelect = 'none';
+    }
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -125,6 +133,12 @@ export function KanbanBoard({
 
     // Unlock scroll when drag ends
     unlockScroll();
+
+    // Clean up mobile drag styling
+    if ('ontouchstart' in window) {
+      document.body.style.userSelect = '';
+      document.body.style.webkitUserSelect = '';
+    }
 
     // Debug logging
     console.log('[KanbanBoard] Drag end event:', {
@@ -238,9 +252,13 @@ export function KanbanBoard({
       <div
         ref={setNodeRef}
         key={status}
-        className={`flex-1 min-w-0 sm:min-w-[280px] rounded-lg border ${config.borderColor} ${config.bgColor} flex flex-col ${
-          isOver ? 'ring-2 ring-blue-400 ring-opacity-50' : ''
-        }`}
+        className={`
+          w-72 snap-center flex-shrink-0 rounded-lg border flex flex-col
+          sm:w-80 md:w-80
+          lg:flex-1 lg:min-w-80
+          ${config.borderColor} ${config.bgColor}
+          ${isOver ? 'ring-2 ring-blue-400 ring-opacity-50' : ''}
+        `}
       >
         {/* Column Header */}
         <div className={`px-4 py-3 rounded-t-lg ${config.headerBg} border-b ${config.borderColor}`}>
@@ -266,9 +284,18 @@ export function KanbanBoard({
           strategy={verticalListSortingStrategy}
         >
           <div
-            className={`flex-1 p-2 sm:p-3 space-y-2 transition-colors duration-200 max-h-[70vh] overflow-y-auto ${
-              isOver ? 'bg-blue-50 dark:bg-blue-900/10' : ''
-            }`}
+            className={`
+              flex-1 p-2 sm:p-3 space-y-2 transition-all duration-200
+              max-h-[70vh] overflow-y-auto
+              ${/* Enhanced mobile drop zone feedback */ ''}
+              ${isOver
+                ? 'bg-blue-50 dark:bg-blue-900/20 ring-2 ring-blue-400 ring-opacity-75 scale-[1.02]'
+                : ''
+              }
+            `}
+            style={{
+              touchAction: 'pan-y', /* Allow vertical scrolling within columns */
+            }}
           >
             {columnTasks.length === 0 ? (
               <div className="flex items-center justify-center min-h-[120px] text-center py-4 text-gray-400 dark:text-gray-500">
@@ -309,49 +336,157 @@ export function KanbanBoard({
     }
   }, [statusFilter]);
 
-  return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-      onDragCancel={() => {
-        setActiveTask(null);
-        unlockScroll();
-      }}
-    >
-      <div className={`flex flex-col md:flex-row gap-3 md:gap-4 w-full ${
-        columnsToShow.length === 1 ? 'md:justify-center' : ''
-      } ${
-        columnsToShow.length === 1 ? 'md:max-w-md md:mx-auto' : ''
-      }`}>
-        {columnsToShow.map(status => renderColumn(status))}
-      </div>
+  // Scroll tracking for indicators (mobile only)
+  const handleScroll = useCallback(() => {
+    if (scrollContainerRef.current && columnsToShow.length > 1) {
+      const container = scrollContainerRef.current;
 
-      {/* Drag Overlay */}
-      <DragOverlay
-        style={{
-          zIndex: 9999,
+      // Only track scroll on mobile/tablet where dots are visible
+      if (window.innerWidth >= 1024) return; // lg breakpoint
+
+      const scrollLeft = container.scrollLeft;
+      const containerWidth = container.clientWidth;
+
+      // Calculate actual column positions accounting for padding and gaps (mobile layout)
+      const paddingLeft = 16; // pl-4 = 16px
+      const columnWidth = 288; // w-72 = 288px
+      const gap = 12; // gap-3 = 12px (md:gap-4 = 16px but we'll use base)
+
+      // Calculate which column is most visible in the viewport
+      let bestIndex = 0;
+      let bestVisibility = 0;
+
+      for (let i = 0; i < columnsToShow.length; i++) {
+        const columnStart = paddingLeft + i * (columnWidth + gap);
+        const columnEnd = columnStart + columnWidth;
+
+        // Calculate how much of this column is visible
+        const visibleStart = Math.max(columnStart, scrollLeft);
+        const visibleEnd = Math.min(columnEnd, scrollLeft + containerWidth);
+        const visibleWidth = Math.max(0, visibleEnd - visibleStart);
+        const visibility = visibleWidth / columnWidth;
+
+        if (visibility > bestVisibility) {
+          bestVisibility = visibility;
+          bestIndex = i;
+        }
+      }
+
+      setCurrentScrollIndex(bestIndex);
+    }
+  }, [columnsToShow.length]);
+
+  // Add scroll event listener
+  React.useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', handleScroll, { passive: true });
+      return () => container.removeEventListener('scroll', handleScroll);
+    }
+  }, [handleScroll]);
+
+  return (
+    <div className="w-full max-w-full overflow-hidden">
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        onDragCancel={() => {
+          setActiveTask(null);
+          unlockScroll();
         }}
       >
-        {activeTask ? (
+        {/* Kanban Board Container - Isolated Horizontal Scroll */}
+        <div
+          className="w-full max-w-full overflow-hidden"
+          style={{
+            touchAction: 'pan-x pan-y', /* Allow both horizontal and vertical scrolling */
+          }}
+        >
           <div
-            className="rotate-2 opacity-95 transform scale-105 pointer-events-none"
+            ref={scrollContainerRef}
+            className={`
+              flex overflow-x-auto scroll-smooth snap-x snap-mandatory
+              pl-4 pr-16 gap-3 pb-2 relative
+              md:gap-4
+              lg:overflow-x-visible lg:snap-none lg:px-6 lg:gap-2 lg:pb-0
+              lg:justify-start
+            `}
             style={{
-              cursor: 'grabbing',
+              scrollbarWidth: 'none', /* Firefox */
+              msOverflowStyle: 'none', /* IE and Edge */
+              WebkitOverflowScrolling: 'touch', /* iOS momentum scrolling */
+              touchAction: 'pan-x', /* Horizontal scroll only for this container */
             }}
           >
-            <KanbanTaskCard
-              task={activeTask}
-              specName={specName}
-              onCopyTaskPrompt={() => {}}
-              copiedTaskId={null}
-              isInProgress={data?.inProgress === activeTask.id}
-              isDragging={true}
-            />
+            {columnsToShow.map(status => renderColumn(status))}
           </div>
-        ) : null}
-      </DragOverlay>
-    </DndContext>
+        </div>
+
+        {/* Mobile Scroll Indicators */}
+        {columnsToShow.length > 1 && (
+          <div className="flex justify-center mt-4 lg:hidden">
+            <div className="flex space-x-2">
+              {columnsToShow.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => {
+                    if (scrollContainerRef.current) {
+                      const container = scrollContainerRef.current;
+
+                      // Calculate actual column position accounting for padding and gaps
+                      const paddingLeft = 16; // pl-4 = 16px
+                      const columnWidth = 288; // w-72 = 288px
+                      const gap = 12; // gap-3 = 12px
+                      const targetPosition = paddingLeft + index * (columnWidth + gap);
+
+                      container.scrollTo({
+                        left: targetPosition,
+                        behavior: 'smooth'
+                      });
+                    }
+                  }}
+                  className={`
+                    w-2 h-2 rounded-full transition-colors duration-200
+                    ${index === currentScrollIndex
+                      ? 'bg-blue-500 dark:bg-blue-400'
+                      : 'bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500'
+                    }
+                  `}
+                  style={{ touchAction: 'manipulation' }}
+                  aria-label={`Go to ${columnsToShow[index]} column`}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Drag Overlay */}
+        <DragOverlay
+          style={{
+            zIndex: 9999,
+          }}
+        >
+          {activeTask ? (
+            <div
+              className="rotate-2 opacity-95 transform scale-105 pointer-events-none"
+              style={{
+                cursor: 'grabbing',
+              }}
+            >
+              <KanbanTaskCard
+                task={activeTask}
+                specName={specName}
+                onCopyTaskPrompt={() => {}}
+                copiedTaskId={null}
+                isInProgress={data?.inProgress === activeTask.id}
+                isDragging={true}
+              />
+            </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
+    </div>
   );
 }

@@ -756,7 +756,7 @@ function TaskList({ specName }: { specName: string }) {
       </div>
 
       {/* Filter and Sort Controls */}
-      <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4 sm:p-6">
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-4 sm:p-6 overflow-hidden">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
           <h3 className="text-base sm:text-lg font-medium text-gray-900 dark:text-white">{t('tasksPage.taskDetails')}</h3>
 
