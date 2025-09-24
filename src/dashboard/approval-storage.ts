@@ -1,6 +1,6 @@
 import { EventEmitter } from 'events';
 import { promises as fs } from 'fs';
-import { join, isAbsolute, resolve } from 'path';
+import { join, isAbsolute, resolve, basename } from 'path';
 import chokidar from 'chokidar';
 import { PathUtils } from '../core/path-utils.js';
 
@@ -12,6 +12,70 @@ export interface ApprovalComment {
   lineNumber?: number;
   characterPosition?: number;
   highlightColor?: string; // Color for highlighting the selected text
+}
+
+export interface DocumentSnapshot {
+  id: string;
+  approvalId: string;
+  approvalTitle: string;
+  version: number;
+  timestamp: string;
+  trigger: 'initial' | 'revision_requested' | 'approved' | 'manual';
+  status: 'pending' | 'approved' | 'rejected' | 'needs-revision';
+  content: string;
+  fileStats: {
+    size: number;
+    lines: number;
+    lastModified: string;
+  };
+  comments?: ApprovalComment[];
+  annotations?: string;
+}
+
+export interface SnapshotMetadata {
+  approvalId: string;
+  currentVersion: number;
+  snapshots: {
+    version: number;
+    filename: string;
+    timestamp: string;
+    trigger: string;
+  }[];
+}
+
+export interface FileSnapshotMetadata {
+  filePath: string;
+  currentVersion: number;
+  snapshots: {
+    version: number;
+    filename: string;
+    timestamp: string;
+    trigger: string;
+    approvalId: string;
+    approvalTitle: string;
+  }[];
+}
+
+export interface DiffResult {
+  additions: number;
+  deletions: number;
+  changes: number;
+  chunks: DiffChunk[];
+}
+
+export interface DiffChunk {
+  oldStart: number;
+  oldLines: number;
+  newStart: number;
+  newLines: number;
+  lines: DiffLine[];
+}
+
+export interface DiffLine {
+  type: 'add' | 'delete' | 'normal';
+  oldLineNumber?: number;
+  newLineNumber?: number;
+  content: string;
 }
 
 export interface ApprovalRequest {
@@ -91,8 +155,8 @@ export class ApprovalStorage extends EventEmitter {
   }
 
   async createApproval(
-    title: string, 
-    filePath: string, 
+    title: string,
+    filePath: string,
     category: 'spec' | 'steering',
     categoryName: string,
     type: 'document' | 'action' = 'document',
@@ -117,6 +181,14 @@ export class ApprovalStorage extends EventEmitter {
 
     const approvalFilePath = join(categoryDir, `${id}.json`);
     await fs.writeFile(approvalFilePath, JSON.stringify(approval, null, 2), 'utf-8');
+
+    // Capture initial snapshot
+    try {
+      await this.captureSnapshot(id, 'initial');
+    } catch (error) {
+      // Log error but don't fail the approval creation
+      console.warn(`Failed to capture initial snapshot for approval ${id}:`, error);
+    }
 
     return id;
   }
@@ -157,9 +229,9 @@ export class ApprovalStorage extends EventEmitter {
   }
 
   async updateApproval(
-    id: string, 
-    status: 'approved' | 'rejected' | 'needs-revision', 
-    response: string, 
+    id: string,
+    status: 'approved' | 'rejected' | 'needs-revision',
+    response: string,
     annotations?: string,
     comments?: ApprovalComment[]
   ): Promise<void> {
@@ -168,11 +240,26 @@ export class ApprovalStorage extends EventEmitter {
       throw new Error(`Approval ${id} not found`);
     }
 
+    // Capture snapshot before status change for certain transitions
+    if (status === 'needs-revision') {
+      try {
+        await this.captureSnapshot(id, 'revision_requested');
+      } catch (error) {
+        console.warn(`Failed to capture revision snapshot for approval ${id}:`, error);
+      }
+    } else if (status === 'approved') {
+      try {
+        await this.captureSnapshot(id, 'approved');
+      } catch (error) {
+        console.warn(`Failed to capture approval snapshot for approval ${id}:`, error);
+      }
+    }
+
     approval.status = status;
     approval.response = response;
     approval.annotations = annotations;
     approval.respondedAt = new Date().toISOString();
-    
+
     if (comments) {
       approval.comments = comments;
     }
@@ -291,8 +378,13 @@ export class ApprovalStorage extends EventEmitter {
     try {
       const approvalPath = await this.findApprovalPath(id);
       if (!approvalPath) return false;
-      
+
+      // Delete the approval file
       await fs.unlink(approvalPath);
+
+      // NOTE: We DO NOT delete snapshots since they are now shared across approvals for the same file
+      // Snapshots are stored in .snapshots/{filename}/ and should persist across approval cycles
+
       return true;
     } catch {
       return false;
@@ -324,6 +416,237 @@ export class ApprovalStorage extends EventEmitter {
     } catch (error) {
       // Error cleaning up old approvals
     }
+  }
+
+  // Snapshot Management Methods
+
+  async captureSnapshot(approvalId: string, trigger: 'initial' | 'revision_requested' | 'approved' | 'manual'): Promise<void> {
+    const approval = await this.getApproval(approvalId);
+    if (!approval || !approval.filePath) {
+      throw new Error(`Approval ${approvalId} not found or has no file path`);
+    }
+
+    // Read current file content
+    const filePath = isAbsolute(approval.filePath)
+      ? approval.filePath
+      : join(this.projectPath, approval.filePath);
+
+    let content: string;
+    let stats: any;
+
+    try {
+      content = await fs.readFile(filePath, 'utf-8');
+      stats = await fs.stat(filePath);
+    } catch (error) {
+      throw new Error(`Failed to read file for snapshot: ${error instanceof Error ? error.message : String(error)}`);
+    }
+
+    // Create file-based snapshots directory
+    const categoryDir = join(this.approvalsDir, approval.categoryName || 'default');
+    const snapshotsDir = join(categoryDir, '.snapshots', basename(approval.filePath));
+    await fs.mkdir(snapshotsDir, { recursive: true });
+
+    // Load or create metadata
+    const metadataPath = join(snapshotsDir, 'metadata.json');
+    let metadata: FileSnapshotMetadata;
+
+    try {
+      const metadataContent = await fs.readFile(metadataPath, 'utf-8');
+      metadata = JSON.parse(metadataContent);
+    } catch {
+      metadata = {
+        filePath: approval.filePath,
+        currentVersion: 0,
+        snapshots: []
+      };
+    }
+
+    // Create new snapshot
+    const version = metadata.currentVersion + 1;
+    const snapshotId = `snapshot-${version.toString().padStart(3, '0')}`;
+    const timestamp = new Date().toISOString();
+
+    const snapshot: DocumentSnapshot = {
+      id: this.generateSnapshotId(),
+      approvalId,
+      approvalTitle: approval.title,
+      version,
+      timestamp,
+      trigger,
+      status: approval.status,
+      content,
+      fileStats: {
+        size: stats.size,
+        lines: content.split('\n').length,
+        lastModified: stats.mtime.toISOString()
+      },
+      comments: approval.comments || [],
+      annotations: approval.annotations || undefined
+    };
+
+    // Write snapshot to disk
+    const snapshotPath = join(snapshotsDir, `${snapshotId}.json`);
+    await fs.writeFile(snapshotPath, JSON.stringify(snapshot, null, 2), 'utf-8');
+
+    // Update metadata
+    metadata.currentVersion = version;
+    metadata.snapshots.push({
+      version,
+      filename: `${snapshotId}.json`,
+      timestamp,
+      trigger,
+      approvalId,
+      approvalTitle: approval.title
+    });
+
+    await fs.writeFile(metadataPath, JSON.stringify(metadata, null, 2), 'utf-8');
+  }
+
+  async getSnapshots(approvalId: string): Promise<DocumentSnapshot[]> {
+    const approval = await this.getApproval(approvalId);
+    if (!approval || !approval.filePath) return [];
+
+    // Get snapshots based on file path, not approval ID
+    const categoryDir = join(this.approvalsDir, approval.categoryName || 'default');
+    const snapshotsDir = join(categoryDir, '.snapshots', basename(approval.filePath));
+    const metadataPath = join(snapshotsDir, 'metadata.json');
+
+    try {
+      const metadataContent = await fs.readFile(metadataPath, 'utf-8');
+      const metadata: FileSnapshotMetadata = JSON.parse(metadataContent);
+      const snapshots: DocumentSnapshot[] = [];
+
+      for (const snapMeta of metadata.snapshots) {
+        const snapPath = join(snapshotsDir, snapMeta.filename);
+        const snapshotContent = await fs.readFile(snapPath, 'utf-8');
+        const snapshot: DocumentSnapshot = JSON.parse(snapshotContent);
+        snapshots.push(snapshot);
+      }
+
+      return snapshots.sort((a, b) => a.version - b.version);
+    } catch {
+      return [];
+    }
+  }
+
+  async getSnapshot(approvalId: string, version: number): Promise<DocumentSnapshot | null> {
+    const snapshots = await this.getSnapshots(approvalId);
+    return snapshots.find(s => s.version === version) || null;
+  }
+
+  async getCurrentFileContent(approvalId: string): Promise<string | null> {
+    const approval = await this.getApproval(approvalId);
+    if (!approval || !approval.filePath) return null;
+
+    const filePath = isAbsolute(approval.filePath)
+      ? approval.filePath
+      : join(this.projectPath, approval.filePath);
+
+    try {
+      return await fs.readFile(filePath, 'utf-8');
+    } catch {
+      return null;
+    }
+  }
+
+  async compareSnapshots(approvalId: string, fromVersion: number, toVersion: number | 'current'): Promise<DiffResult> {
+    let fromContent: string;
+    let toContent: string;
+
+    if (fromVersion === 0) {
+      fromContent = '';
+    } else {
+      const fromSnapshot = await this.getSnapshot(approvalId, fromVersion);
+      if (!fromSnapshot) {
+        throw new Error(`Snapshot version ${fromVersion} not found`);
+      }
+      fromContent = fromSnapshot.content;
+    }
+
+    if (toVersion === 'current') {
+      const currentContent = await this.getCurrentFileContent(approvalId);
+      if (currentContent === null) {
+        throw new Error(`Could not read current file content for approval ${approvalId}`);
+      }
+      toContent = currentContent;
+    } else {
+      const toSnapshot = await this.getSnapshot(approvalId, toVersion);
+      if (!toSnapshot) {
+        throw new Error(`Snapshot version ${toVersion} not found`);
+      }
+      toContent = toSnapshot.content;
+    }
+
+    // Basic diff computation (we'll enhance this when we add the diff library)
+    const fromLines = fromContent.split('\n');
+    const toLines = toContent.split('\n');
+
+    // Simple line-by-line comparison for now
+    const diffLines: DiffLine[] = [];
+    let additions = 0;
+    let deletions = 0;
+    let changes = 0;
+
+    // This is a very basic implementation - will be replaced with proper diff library
+    const maxLines = Math.max(fromLines.length, toLines.length);
+    for (let i = 0; i < maxLines; i++) {
+      const fromLine = fromLines[i];
+      const toLine = toLines[i];
+
+      if (fromLine !== undefined && toLine !== undefined) {
+        if (fromLine === toLine) {
+          diffLines.push({
+            type: 'normal',
+            oldLineNumber: i + 1,
+            newLineNumber: i + 1,
+            content: fromLine
+          });
+        } else {
+          changes++;
+          diffLines.push({
+            type: 'delete',
+            oldLineNumber: i + 1,
+            content: fromLine
+          });
+          diffLines.push({
+            type: 'add',
+            newLineNumber: i + 1,
+            content: toLine
+          });
+        }
+      } else if (fromLine !== undefined) {
+        deletions++;
+        diffLines.push({
+          type: 'delete',
+          oldLineNumber: i + 1,
+          content: fromLine
+        });
+      } else if (toLine !== undefined) {
+        additions++;
+        diffLines.push({
+          type: 'add',
+          newLineNumber: i + 1,
+          content: toLine
+        });
+      }
+    }
+
+    return {
+      additions,
+      deletions,
+      changes,
+      chunks: [{
+        oldStart: 1,
+        oldLines: fromLines.length,
+        newStart: 1,
+        newLines: toLines.length,
+        lines: diffLines
+      }]
+    };
+  }
+
+  private generateSnapshotId(): string {
+    return `snapshot_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
   private generateId(): string {

@@ -238,6 +238,81 @@ export class DashboardServer {
       }
     });
 
+    // Get all snapshots for an approval
+    this.app.get('/api/approvals/:id/snapshots', async (request, reply) => {
+      const { id } = request.params as { id: string };
+      try {
+        const snapshots = await this.approvalStorage.getSnapshots(id);
+        return snapshots;
+      } catch (error: any) {
+        reply.code(500).send({ error: `Failed to get snapshots: ${error.message}` });
+      }
+    });
+
+    // Get specific snapshot version for an approval
+    this.app.get('/api/approvals/:id/snapshots/:version', async (request, reply) => {
+      const { id, version } = request.params as { id: string; version: string };
+      try {
+        const versionNum = parseInt(version, 10);
+        if (isNaN(versionNum)) {
+          return reply.code(400).send({ error: 'Invalid version number' });
+        }
+
+        const snapshot = await this.approvalStorage.getSnapshot(id, versionNum);
+        if (!snapshot) {
+          return reply.code(404).send({ error: `Snapshot version ${version} not found` });
+        }
+
+        return snapshot;
+      } catch (error: any) {
+        reply.code(500).send({ error: `Failed to get snapshot: ${error.message}` });
+      }
+    });
+
+    // Get diff between two versions or between version and current
+    this.app.get('/api/approvals/:id/diff', async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const { from, to } = request.query as { from?: string; to?: string };
+
+      if (!from) {
+        return reply.code(400).send({ error: 'from parameter is required' });
+      }
+
+      try {
+        const fromVersion = parseInt(from, 10);
+        if (isNaN(fromVersion)) {
+          return reply.code(400).send({ error: 'Invalid from version number' });
+        }
+
+        let toVersion: number | 'current';
+        if (to === 'current' || to === undefined) {
+          toVersion = 'current';
+        } else {
+          const toVersionNum = parseInt(to, 10);
+          if (isNaN(toVersionNum)) {
+            return reply.code(400).send({ error: 'Invalid to version number' });
+          }
+          toVersion = toVersionNum;
+        }
+
+        const diff = await this.approvalStorage.compareSnapshots(id, fromVersion, toVersion);
+        return diff;
+      } catch (error: any) {
+        reply.code(500).send({ error: `Failed to compute diff: ${error.message}` });
+      }
+    });
+
+    // Manual snapshot capture (optional feature)
+    this.app.post('/api/approvals/:id/snapshot', async (request, reply) => {
+      const { id } = request.params as { id: string };
+      try {
+        await this.approvalStorage.captureSnapshot(id, 'manual');
+        return { success: true, message: 'Snapshot captured successfully' };
+      } catch (error: any) {
+        reply.code(500).send({ error: `Failed to capture snapshot: ${error.message}` });
+      }
+    });
+
     this.app.get('/api/info', async () => {
       // Resolve the project path to get the actual directory name
       const resolvedPath = resolve(this.options.projectPath);
