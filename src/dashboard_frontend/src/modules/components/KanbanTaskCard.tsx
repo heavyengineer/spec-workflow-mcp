@@ -101,7 +101,7 @@ export function KanbanTaskCard({
       ref={setNodeRef}
       style={{
         ...style,
-        touchAction: 'none', // Prevent default touch actions during drag
+        touchAction: 'manipulation', // Allow scrolling while supporting drag
       }}
       {...attributes}
       {...listeners}

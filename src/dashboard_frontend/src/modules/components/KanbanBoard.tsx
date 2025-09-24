@@ -4,7 +4,7 @@ import {
   DragEndEvent,
   DragOverlay,
   DragStartEvent,
-  PointerSensor,
+  MouseSensor,
   TouchSensor,
   useSensor,
   useSensors,
@@ -56,49 +56,34 @@ export function KanbanBoard({
   const [currentScrollIndex, setCurrentScrollIndex] = React.useState(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // Scroll lock utilities
-  const lockScroll = useCallback(() => {
-    // Store current scroll position
-    scrollPositionRef.current = {
-      x: window.scrollX,
-      y: window.scrollY
-    };
-
-    // Prevent scrolling by setting overflow hidden on body
-    document.body.style.overflow = 'hidden';
-    document.body.style.touchAction = 'none';
-
-    // Maintain scroll position
-    document.body.style.position = 'fixed';
-    document.body.style.top = `-${scrollPositionRef.current.y}px`;
-    document.body.style.left = `-${scrollPositionRef.current.x}px`;
-    document.body.style.width = '100%';
+  // Light scroll management - only prevent selection during drag
+  const preventSelection = useCallback(() => {
+    // Only prevent text selection during drag, not scrolling
+    if ('ontouchstart' in window) {
+      document.body.style.userSelect = 'none';
+      document.body.style.webkitUserSelect = 'none';
+    }
   }, []);
 
-  const unlockScroll = useCallback(() => {
-    // Restore body styles
-    document.body.style.overflow = '';
-    document.body.style.touchAction = '';
-    document.body.style.position = '';
-    document.body.style.top = '';
-    document.body.style.left = '';
-    document.body.style.width = '';
-
-    // Restore scroll position
-    window.scrollTo(scrollPositionRef.current.x, scrollPositionRef.current.y);
+  const restoreSelection = useCallback(() => {
+    // Restore text selection
+    if ('ontouchstart' in window) {
+      document.body.style.userSelect = '';
+      document.body.style.webkitUserSelect = '';
+    }
   }, []);
 
-  // Setup sensors for drag and drop - optimized for mobile
+  // Setup sensors for drag and drop - industry standard configuration
   const sensors = useSensors(
-    useSensor(PointerSensor, {
+    useSensor(MouseSensor, {
       activationConstraint: {
-        distance: 8, // Reduced distance for better responsiveness
+        distance: 8,
       },
     }),
     useSensor(TouchSensor, {
       activationConstraint: {
-        delay: 200, // Reduced delay for faster mobile response
-        tolerance: 10, // Increased tolerance for fat finger taps
+        delay: 250, // Industry standard 250ms
+        tolerance: 5, // Standard tolerance for finger movement
       },
     })
   );
@@ -117,28 +102,16 @@ export function KanbanBoard({
     const task = tasks.find(t => t.id === event.active.id);
     setActiveTask(task || null);
 
-    // Lock scroll when drag starts
-    lockScroll();
-
-    // Add visual feedback for mobile drag operation
-    if ('ontouchstart' in window) {
-      document.body.style.userSelect = 'none';
-      document.body.style.webkitUserSelect = 'none';
-    }
+    // Only prevent text selection during drag, allow scrolling
+    preventSelection();
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     setActiveTask(null);
 
-    // Unlock scroll when drag ends
-    unlockScroll();
-
-    // Clean up mobile drag styling
-    if ('ontouchstart' in window) {
-      document.body.style.userSelect = '';
-      document.body.style.webkitUserSelect = '';
-    }
+    // Restore text selection
+    restoreSelection();
 
     // Debug logging
     console.log('[KanbanBoard] Drag end event:', {
@@ -394,7 +367,7 @@ export function KanbanBoard({
         onDragEnd={handleDragEnd}
         onDragCancel={() => {
           setActiveTask(null);
-          unlockScroll();
+          restoreSelection();
         }}
       >
         {/* Kanban Board Container - Isolated Horizontal Scroll */}
