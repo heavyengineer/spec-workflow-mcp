@@ -12,17 +12,13 @@ This directory contains Docker configuration files to run the Spec-Workflow MCP 
 
 ### Building the Container
 
-From the containers directory, build the Docker image with your user ID to avoid permission issues:
+From the containers directory, build the Docker image:
 
 ```bash
-docker build --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) -t spec-workflow-mcp .
+docker build -t spec-workflow-mcp .
 ```
 
-For systems where `id` command is not available:
-
-```bash
-docker build --build-arg USER_ID=1000 --build-arg GROUP_ID=1000 -t spec-workflow-mcp .
-```
+The container will run with your host user's UID/GID at runtime using the `--user` flag, ensuring proper file permissions.
 
 ## MCP Server Configuration
 
@@ -53,7 +49,7 @@ If you prefer to configure manually, create or update the `.mcp.json` file in yo
         "args": [
           "run", "--rm", "-i",
           "--user", "1000:1000",
-          "-v", "/full/path/to/project/.spec-workflow:/full/path/to/project/.spec-workflow:rw",
+          "-v", "/full/path/to/project:/full/path/to/project:rw",
           "--entrypoint=node",
           "spec-workflow-mcp:latest",
           "/app/dist/index.js", "/full/path/to/project"
@@ -70,31 +66,18 @@ If you prefer to configure manually, create or update the `.mcp.json` file in yo
 
 ### Path Mapping Requirements
 
-The container requires the `.spec-workflow` directory to be mounted at the **exact same path** inside the container as it exists on your host system. This is critical for the MCP server to function correctly.
+The container requires the entire project directory to be mounted at the **exact same path** inside the container as it exists on the host system. This is so the MCP server can reliably create and manage the `.spec-workflow` directory
 
-**Example:** If your project is at `/home/steev/tabletopsentinel.com`, your configuration would be:
 
-```json
-{
-    "mcpServers": {
-      "spec-workflow": {
-        "command": "docker",
-        "args": [
-          "run", "--rm", "-i",
-          "-v", "./.spec-workflow:/home/steev/tabletopsentinel.com/.spec-workflow:rw",
-          "--entrypoint=node",
-          "spec-workflow-mcp:latest",
-          "/app/dist/index.js", "./"
-        ]
-      }
-    }
-}
+**Example:** If your project is at `/home/steev/myproject`, your configuration would mount:
+```
+-v /home/steev/myproject:/home/steev/myproject:rw
 ```
 
 ### Key Configuration Points
 
 - **Path Consistency**: The container path must match your host path exactly
-- **Volume Mount**: Only the `.spec-workflow` directory needs to be mounted
+- **Volume Mount**: The entire project directory must be mounted for the MCP server to access source code
 - **Auto-creation**: The `.spec-workflow` directory will be created if it doesn't exist
 - **SELinux Note**: If you're using SELinux, you may need to add `:z` to the volume mount (e.g., `:rw,z`)
 
@@ -136,7 +119,7 @@ docker-compose down
 
 ### Common Issues
 
-1. **Permission Denied**: Ensure the container was built with your user ID using the `--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)` flags
+1. **Permission Denied**: The container runs with your host user ID/GID via the `--user` flag. Ensure `.mcp.json` includes the correct user ID from `id -u` and group ID from `id -g`
 2. **Port Already in Use**: Choose a different port using the `DASHBOARD_PORT` variable
 3. **Path Not Found**: Verify that your `SPEC_WORKFLOW_PATH` matches your actual project location
 4. **SELinux Issues**: On SELinux-enabled systems, add `:z` to volume mounts
