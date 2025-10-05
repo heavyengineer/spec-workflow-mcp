@@ -214,6 +214,23 @@
       "design": "设计",
       "tasks": "任务"
     },
+    "table": {
+      "name": "名称",
+      "progress": "进度",
+      "lastModified": "最后修改",
+      "actions": "操作"
+    },
+    "sort": {
+      "defaultOrder": "默认顺序",
+      "defaultOrderDesc": "原始规范顺序",
+      "name": "名称",
+      "nameDesc": "按名称字母排序",
+      "progress": "进度",
+      "progressDesc": "按任务完成百分比排序",
+      "lastModified": "最后修改",
+      "lastModifiedDesc": "按修改日期排序"
+    },
+    "noTasks": "无任务",
     "search": {
       "placeholder": {
         "active": "搜索活动规范...",
@@ -222,7 +239,9 @@
     },
     "empty": {
       "title": "暂无文档",
-      "description": "此规范尚未创建任何文档。"
+      "description": "此规范尚未创建任何文档。",
+      "noResults": "未找到规范",
+      "noResultsDescription": "请尝试调整搜索条件或筛选器"
     },
     "tabs": {
       "active": "活动",

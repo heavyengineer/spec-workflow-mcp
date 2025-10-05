@@ -214,6 +214,23 @@
       "design": "Design",
       "tasks": "Tarefas"
     },
+    "table": {
+      "name": "Nome",
+      "progress": "Progresso",
+      "lastModified": "Última Modificação",
+      "actions": "Ações"
+    },
+    "sort": {
+      "defaultOrder": "Ordem Padrão",
+      "defaultOrderDesc": "Ordem original das especificações",
+      "name": "Nome",
+      "nameDesc": "Ordenar alfabeticamente por nome",
+      "progress": "Progresso",
+      "progressDesc": "Ordenar por porcentagem de tarefas concluídas",
+      "lastModified": "Última Modificação",
+      "lastModifiedDesc": "Ordenar por data de modificação"
+    },
+    "noTasks": "Sem tarefas",
     "search": {
       "placeholder": {
         "active": "Buscar especificações ativas...",
@@ -222,7 +239,9 @@
     },
     "empty": {
       "title": "Nenhum Documento Disponível",
-      "description": "Esta especificação ainda não tem documentos criados."
+      "description": "Esta especificação ainda não tem documentos criados.",
+      "noResults": "Nenhuma especificação encontrada",
+      "noResultsDescription": "Tente ajustar sua busca ou filtros"
     },
     "tabs": {
       "active": "Ativas",

@@ -214,6 +214,23 @@
       "design": "Design",
       "tasks": "Tasks"
     },
+    "table": {
+      "name": "Name",
+      "progress": "Progress",
+      "lastModified": "Last Modified",
+      "actions": "Actions"
+    },
+    "sort": {
+      "defaultOrder": "Default Order",
+      "defaultOrderDesc": "Original spec order",
+      "name": "Name",
+      "nameDesc": "Sort alphabetically by name",
+      "progress": "Progress",
+      "progressDesc": "Sort by task completion percentage",
+      "lastModified": "Last Modified",
+      "lastModifiedDesc": "Sort by modification date"
+    },
+    "noTasks": "No tasks",
     "search": {
       "placeholder": {
         "active": "Search active specs...",
@@ -222,7 +239,9 @@
     },
     "empty": {
       "title": "No Documents Available",
-      "description": "This spec doesn't have any documents created yet."
+      "description": "This spec doesn't have any documents created yet.",
+      "noResults": "No specs found",
+      "noResultsDescription": "Try adjusting your search or filters"
     },
     "tabs": {
       "active": "Active",

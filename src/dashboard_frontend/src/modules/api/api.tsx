@@ -26,6 +26,46 @@ export type ProjectInfo = {
   version?: string;
 };
 
+export interface DocumentSnapshot {
+  id: string;
+  approvalId: string;
+  approvalTitle: string;
+  version: number;
+  timestamp: string;
+  trigger: 'initial' | 'revision_requested' | 'approved' | 'manual';
+  status: 'pending' | 'approved' | 'rejected' | 'needs-revision';
+  content: string;
+  fileStats: {
+    size: number;
+    lines: number;
+    lastModified: string;
+  };
+  comments?: any[];
+  annotations?: string;
+}
+
+export interface DiffResult {
+  additions: number;
+  deletions: number;
+  changes: number;
+  chunks: DiffChunk[];
+}
+
+export interface DiffChunk {
+  oldStart: number;
+  oldLines: number;
+  newStart: number;
+  newLines: number;
+  lines: DiffLine[];
+}
+
+export interface DiffLine {
+  type: 'add' | 'delete' | 'normal';
+  oldLineNumber?: number;
+  newLineNumber?: number;
+  content: string;
+}
+
 async function getJson<T>(url: string): Promise<T> {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`GET ${url} failed: ${res.status}`);
@@ -55,6 +95,10 @@ type ApiContextType = {
   updateTaskStatus: (specName: string, taskId: string, status: 'pending' | 'in-progress' | 'completed') => Promise<{ ok: boolean; status: number; data?: any }>;
   approvalsAction: (id: string, action: 'approve' | 'reject' | 'needs-revision', payload: any) => Promise<{ ok: boolean; status: number }>;
   getApprovalContent: (id: string) => Promise<{ content: string; filePath?: string }>;
+  getApprovalSnapshots: (id: string) => Promise<DocumentSnapshot[]>;
+  getApprovalSnapshot: (id: string, version: number) => Promise<DocumentSnapshot>;
+  getApprovalDiff: (id: string, fromVersion: number, toVersion?: number | 'current') => Promise<DiffResult>;
+  captureApprovalSnapshot: (id: string) => Promise<{ success: boolean; message: string }>;
   saveSpecDocument: (name: string, document: string, content: string) => Promise<{ ok: boolean; status: number }>;
   saveArchivedSpecDocument: (name: string, document: string, content: string) => Promise<{ ok: boolean; status: number }>;
   archiveSpec: (name: string) => Promise<{ ok: boolean; status: number }>;
@@ -143,6 +187,13 @@ export function ApiProvider({ initial, children }: { initial?: { specs?: SpecSum
     updateTaskStatus: (specName: string, taskId: string, status: 'pending' | 'in-progress' | 'completed') => putJson(`/api/specs/${encodeURIComponent(specName)}/tasks/${encodeURIComponent(taskId)}/status`, { status }),
     approvalsAction: (id, action, body) => postJson(`/api/approvals/${encodeURIComponent(id)}/${action}`, body),
     getApprovalContent: (id: string) => getJson(`/api/approvals/${encodeURIComponent(id)}/content`),
+    getApprovalSnapshots: (id: string) => getJson(`/api/approvals/${encodeURIComponent(id)}/snapshots`),
+    getApprovalSnapshot: (id: string, version: number) => getJson(`/api/approvals/${encodeURIComponent(id)}/snapshots/${version}`),
+    getApprovalDiff: (id: string, fromVersion: number, toVersion?: number | 'current') => {
+      const to = toVersion === undefined ? 'current' : toVersion;
+      return getJson(`/api/approvals/${encodeURIComponent(id)}/diff?from=${fromVersion}&to=${to}`);
+    },
+    captureApprovalSnapshot: (id: string) => postJson(`/api/approvals/${encodeURIComponent(id)}/snapshot`, {}),
     saveSpecDocument: (name: string, document: string, content: string) => putJson(`/api/specs/${encodeURIComponent(name)}/${encodeURIComponent(document)}`, { content }),
     saveArchivedSpecDocument: (name: string, document: string, content: string) => putJson(`/api/specs/${encodeURIComponent(name)}/${encodeURIComponent(document)}/archived`, { content }),
     archiveSpec: (name: string) => postJson(`/api/specs/${encodeURIComponent(name)}/archive`, {}),

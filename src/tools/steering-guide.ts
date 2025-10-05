@@ -27,7 +27,7 @@ export async function steeringGuideHandler(args: any, context: ToolContext): Pro
       'Create product.md first',
       'Then tech.md and structure.md',
       'Reference in future specs',
-      context.dashboardUrl ? `Dashboard: ${context.dashboardUrl}` : 'Dashboard not available'
+      context.dashboardUrl ? `Dashboard: ${context.dashboardUrl}` : 'Please start the dashboard or use VS Code extension "Spec Workflow MCP"'
     ]
   };
 }

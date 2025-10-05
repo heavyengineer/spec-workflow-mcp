@@ -1,7 +1,7 @@
-@config '../../../tailwind.config.js';
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@variant dark (.dark &);
 
 :root {
   color-scheme: light dark;
@@ -25,4 +25,23 @@
 
 .muted { @apply text-gray-500 dark:text-gray-400; }
 
+/* Drag and Drop utilities */
+.draggable {
+  @apply touch-none select-none;
+}
 
+.dragging {
+  @apply cursor-grabbing opacity-75 scale-105 rotate-1 z-50;
+}
+
+.drag-overlay {
+  @apply pointer-events-none;
+}
+
+.drop-zone {
+  @apply transition-colors duration-200;
+}
+
+.drop-zone-active {
+  @apply ring-2 ring-blue-400 bg-blue-50 dark:bg-blue-900/10;
+}

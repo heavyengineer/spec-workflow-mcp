@@ -214,6 +214,23 @@
       "design": "Design",
       "tasks": "Aufgaben"
     },
+    "table": {
+      "name": "Name",
+      "progress": "Fortschritt",
+      "lastModified": "Zuletzt Geändert",
+      "actions": "Aktionen"
+    },
+    "sort": {
+      "defaultOrder": "Standardreihenfolge",
+      "defaultOrderDesc": "Ursprüngliche Spezifikationsreihenfolge",
+      "name": "Name",
+      "nameDesc": "Alphabetisch nach Namen sortieren",
+      "progress": "Fortschritt",
+      "progressDesc": "Nach Aufgabenabschlussprozentsatz sortieren",
+      "lastModified": "Zuletzt Geändert",
+      "lastModifiedDesc": "Nach Änderungsdatum sortieren"
+    },
+    "noTasks": "Keine Aufgaben",
     "search": {
       "placeholder": {
         "active": "Aktive Spezifikationen suchen...",
@@ -222,7 +239,9 @@
     },
     "empty": {
       "title": "Keine Dokumente verfügbar",
-      "description": "Diese Spezifikation hat noch keine erstellten Dokumente."
+      "description": "Diese Spezifikation hat noch keine erstellten Dokumente.",
+      "noResults": "Keine Spezifikationen gefunden",
+      "noResultsDescription": "Versuchen Sie, Ihre Suche oder Filter anzupassen"
     },
     "tabs": {
       "active": "Aktiv",

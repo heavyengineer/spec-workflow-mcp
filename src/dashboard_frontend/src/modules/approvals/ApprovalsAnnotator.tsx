@@ -316,41 +316,9 @@ export function ApprovalsAnnotator({ content, comments, onCommentsChange, viewMo
     <div className="grid gap-4 lg:grid-cols-3 lg:gap-6">
       {/* Document Content - Takes 2 columns on desktop */}
       <div data-section="annotations" className="lg:col-span-2">
-        {/* View Mode Toggle */}
-        <div className="flex items-center justify-center p-2 sm:p-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 rounded-t-lg">
-          <div className="flex items-center bg-white dark:bg-gray-800 rounded-lg p-0.5 sm:p-1 shadow-sm border border-gray-200 dark:border-gray-600">
-            <button
-              onClick={() => setViewMode('preview')}
-              className={`px-2 sm:px-3 py-1.5 text-sm rounded-md transition-colors flex items-center gap-1 ${
-                viewMode === 'preview' 
-                  ? 'bg-blue-600 text-white' 
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-              }`}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 616 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
-              <span className="hidden sm:inline">{t('approvals.annotator.viewMode.preview')}</span>
-            </button>
-            <button
-              onClick={() => setViewMode('annotate')}
-              className={`px-2 sm:px-3 py-1.5 text-sm rounded-md transition-colors flex items-center gap-1 ${
-                viewMode === 'annotate' 
-                  ? 'bg-blue-600 text-white' 
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-              }`}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-              <span className="hidden sm:inline">{t('approvals.annotator.viewMode.annotate')}</span>
-            </button>
-          </div>
-        </div>
 
         {/* Content Display */}
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-b-lg overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
           {viewMode === 'preview' ? (
             <div className="p-4 sm:p-6">
               <div className="prose prose-sm sm:prose-base max-w-none dark:prose-invert prose-img:max-w-full prose-img:h-auto prose-headings:text-gray-900 dark:prose-headings:text-white prose-p:text-gray-700 dark:prose-p:text-gray-300 prose-strong:text-gray-900 dark:prose-strong:text-white prose-code:text-gray-800 dark:prose-code:text-gray-200 prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-pre:bg-gray-50 dark:prose-pre:bg-gray-900 prose-blockquote:text-gray-700 dark:prose-blockquote:text-gray-300 prose-li:text-gray-700 dark:prose-li:text-gray-300">

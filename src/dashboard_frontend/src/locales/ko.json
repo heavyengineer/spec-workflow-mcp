@@ -214,6 +214,23 @@
       "design": "설계",
       "tasks": "태스크"
     },
+    "table": {
+      "name": "이름",
+      "progress": "진행률",
+      "lastModified": "최근 수정",
+      "actions": "액션"
+    },
+    "sort": {
+      "defaultOrder": "기본 순서",
+      "defaultOrderDesc": "원래 명세서 순서",
+      "name": "이름",
+      "nameDesc": "이름순으로 정렬",
+      "progress": "진행률",
+      "progressDesc": "태스크 완료율로 정렬",
+      "lastModified": "최근 수정",
+      "lastModifiedDesc": "수정 날짜순으로 정렬"
+    },
+    "noTasks": "태스크 없음",
     "search": {
       "placeholder": {
         "active": "활성 스펙 검색...",
@@ -222,7 +239,9 @@
     },
     "empty": {
       "title": "사용 가능한 문서 없음",
-      "description": "이 스펙에는 아직 생성된 문서가 없습니다."
+      "description": "이 스펙에는 아직 생성된 문서가 없습니다.",
+      "noResults": "명세서를 찾을 수 없음",
+      "noResultsDescription": "검색어나 필터를 조정해 보세요"
     },
     "tabs": {
       "active": "활성",

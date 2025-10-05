@@ -53,13 +53,13 @@ export class DashboardServer {
     // Check for existing dashboard FIRST before allocating any resources
     if (this.options.port) {
       const existingDashboard = await checkExistingDashboard(this.options.port);
-      
+
       if (existingDashboard) {
         this.actualPort = this.options.port;
         this.isUsingExistingDashboard = true;
         const existingUrl = `http://localhost:${this.actualPort}`;
         console.error(`Dashboard already running at ${existingUrl} - connecting to existing instance`);
-        
+
         // Return early BEFORE starting any watchers or registering routes
         // This prevents resource leaks when connecting to existing dashboards
         return existingUrl;
@@ -159,13 +159,13 @@ export class DashboardServer {
 
     this.app.post('/api/specs/:name/archive', async (request, reply) => {
       const { name } = request.params as { name: string };
-      
+
       try {
         await this.archiveService.archiveSpec(name);
-        
+
         // Broadcast update to all connected clients
         this.broadcastSpecUpdate();
-        
+
         return { success: true, message: `Spec '${name}' archived successfully` };
       } catch (error: any) {
         reply.code(400).send({ error: error.message });
@@ -174,13 +174,13 @@ export class DashboardServer {
 
     this.app.post('/api/specs/:name/unarchive', async (request, reply) => {
       const { name } = request.params as { name: string };
-      
+
       try {
         await this.archiveService.unarchiveSpec(name);
-        
+
         // Broadcast update to all connected clients
         this.broadcastSpecUpdate();
-        
+
         return { success: true, message: `Spec '${name}' unarchived successfully` };
       } catch (error: any) {
         reply.code(400).send({ error: error.message });
@@ -238,14 +238,89 @@ export class DashboardServer {
       }
     });
 
+    // Get all snapshots for an approval
+    this.app.get('/api/approvals/:id/snapshots', async (request, reply) => {
+      const { id } = request.params as { id: string };
+      try {
+        const snapshots = await this.approvalStorage.getSnapshots(id);
+        return snapshots;
+      } catch (error: any) {
+        reply.code(500).send({ error: `Failed to get snapshots: ${error.message}` });
+      }
+    });
+
+    // Get specific snapshot version for an approval
+    this.app.get('/api/approvals/:id/snapshots/:version', async (request, reply) => {
+      const { id, version } = request.params as { id: string; version: string };
+      try {
+        const versionNum = parseInt(version, 10);
+        if (isNaN(versionNum)) {
+          return reply.code(400).send({ error: 'Invalid version number' });
+        }
+
+        const snapshot = await this.approvalStorage.getSnapshot(id, versionNum);
+        if (!snapshot) {
+          return reply.code(404).send({ error: `Snapshot version ${version} not found` });
+        }
+
+        return snapshot;
+      } catch (error: any) {
+        reply.code(500).send({ error: `Failed to get snapshot: ${error.message}` });
+      }
+    });
+
+    // Get diff between two versions or between version and current
+    this.app.get('/api/approvals/:id/diff', async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const { from, to } = request.query as { from?: string; to?: string };
+
+      if (!from) {
+        return reply.code(400).send({ error: 'from parameter is required' });
+      }
+
+      try {
+        const fromVersion = parseInt(from, 10);
+        if (isNaN(fromVersion)) {
+          return reply.code(400).send({ error: 'Invalid from version number' });
+        }
+
+        let toVersion: number | 'current';
+        if (to === 'current' || to === undefined) {
+          toVersion = 'current';
+        } else {
+          const toVersionNum = parseInt(to, 10);
+          if (isNaN(toVersionNum)) {
+            return reply.code(400).send({ error: 'Invalid to version number' });
+          }
+          toVersion = toVersionNum;
+        }
+
+        const diff = await this.approvalStorage.compareSnapshots(id, fromVersion, toVersion);
+        return diff;
+      } catch (error: any) {
+        reply.code(500).send({ error: `Failed to compute diff: ${error.message}` });
+      }
+    });
+
+    // Manual snapshot capture (optional feature)
+    this.app.post('/api/approvals/:id/snapshot', async (request, reply) => {
+      const { id } = request.params as { id: string };
+      try {
+        await this.approvalStorage.captureSnapshot(id, 'manual');
+        return { success: true, message: 'Snapshot captured successfully' };
+      } catch (error: any) {
+        reply.code(500).send({ error: `Failed to capture snapshot: ${error.message}` });
+      }
+    });
+
     this.app.get('/api/info', async () => {
       // Resolve the project path to get the actual directory name
       const resolvedPath = resolve(this.options.projectPath);
       const projectName = basename(resolvedPath) || 'Project';
       const steeringStatus = await this.parser.getProjectSteeringStatus();
-      
+
       // Use cached version fetched at startup
-      
+
       return {
         projectName,
         steering: steeringStatus,
@@ -306,10 +381,10 @@ export class DashboardServer {
         // Ensure the spec directory exists
         const specDir = join(this.options.projectPath, '.spec-workflow', 'specs', name);
         await fs.mkdir(specDir, { recursive: true });
-        
+
         // Write the content to file
         await fs.writeFile(docPath, content, 'utf-8');
-        
+
         return { success: true, message: 'Document saved successfully' };
       } catch (error: any) {
         reply.code(500).send({ error: `Failed to save document: ${error.message}` });
@@ -338,10 +413,10 @@ export class DashboardServer {
         // Ensure the archived spec directory exists
         const specDir = join(this.options.projectPath, '.spec-workflow', 'archive', 'specs', name);
         await fs.mkdir(specDir, { recursive: true });
-        
+
         // Write the content to file
         await fs.writeFile(docPath, content, 'utf-8');
-        
+
         return { success: true, message: 'Archived document saved successfully' };
       } catch (error: any) {
         reply.code(500).send({ error: `Failed to save archived document: ${error.message}` });
@@ -411,15 +486,15 @@ export class DashboardServer {
       try {
         const content = await readFile(docPath, 'utf-8');
         const stats = await fs.stat(docPath);
-        return { 
-          content, 
-          lastModified: stats.mtime.toISOString() 
+        return {
+          content,
+          lastModified: stats.mtime.toISOString()
         };
       } catch {
         // Return empty content for non-existent documents to allow creation
-        return { 
-          content: '', 
-          lastModified: new Date().toISOString() 
+        return {
+          content: '',
+          lastModified: new Date().toISOString()
         };
       }
     });
@@ -446,13 +521,13 @@ export class DashboardServer {
       try {
         // Ensure the steering directory exists
         await fs.mkdir(steeringDir, { recursive: true });
-        
+
         // Write the content to file
         await fs.writeFile(docPath, content, 'utf-8');
-        
+
         // Broadcast steering update to all connected clients
         await this.broadcastSteeringUpdate();
-        
+
         return { success: true, message: 'Steering document saved successfully' };
       } catch (error: any) {
         reply.code(500).send({ error: `Failed to save steering document: ${error.message}` });
@@ -503,7 +578,7 @@ export class DashboardServer {
 
       try {
         const tasksPath = join(this.options.projectPath, '.spec-workflow', 'specs', name, 'tasks.md');
-        
+
         // Check if tasks file exists
         let tasksContent: string;
         try {
@@ -515,20 +590,32 @@ export class DashboardServer {
           throw error;
         }
 
-        // Parse tasks to verify taskId exists
+        // Parse tasks to verify taskId exists and get current status
         const parseResult = parseTasksFromMarkdown(tasksContent);
         const task = parseResult.tasks.find(t => t.id === taskId);
-        
+
         if (!task) {
           return reply.code(404).send({ error: `Task ${taskId} not found` });
+        }
+
+        // Check if task already has the target status (valid no-op case)
+        if (task.status === status) {
+          // Task already has the target status - this is a valid scenario, not an error
+          return {
+            success: true,
+            message: `Task ${taskId} already has status ${status}`,
+            task: { ...task, status }
+          };
         }
 
         // Update task status in markdown
         const { updateTaskStatus } = await import('../core/task-parser.js');
         const updatedContent = updateTaskStatus(tasksContent, taskId, status);
 
+        // Only error if the update function genuinely failed to find/update the task
+        // This should be rare since we already verified the task exists above
         if (updatedContent === tasksContent) {
-          return reply.code(400).send({ error: `Could not update task ${taskId} status` });
+          return reply.code(500).send({ error: `Failed to update task ${taskId} in markdown content` });
         }
 
         // Write updated content
@@ -537,8 +624,8 @@ export class DashboardServer {
         // Broadcast task update to all connected clients
         this.broadcastTaskUpdate(name);
 
-        return { 
-          success: true, 
+        return {
+          success: true,
           message: `Task ${taskId} status updated to ${status}`,
           task: { ...task, status }
         };
@@ -698,7 +785,7 @@ export class DashboardServer {
         this.parser.getAllSpecs(),
         this.parser.getAllArchivedSpecs()
       ]);
-      
+
       const message = JSON.stringify({
         type: 'spec-update',
         data: { specs, archivedSpecs },
@@ -718,7 +805,7 @@ export class DashboardServer {
   private async broadcastSteeringUpdate() {
     try {
       const steeringStatus = await this.parser.getProjectSteeringStatus();
-      
+
       const message = JSON.stringify({
         type: 'steering-update',
         data: steeringStatus,
@@ -741,7 +828,7 @@ export class DashboardServer {
       const tasksPath = join(this.options.projectPath, '.spec-workflow', 'specs', specName, 'tasks.md');
       const tasksContent = await readFile(tasksPath, 'utf-8');
       const parseResult = parseTasksFromMarkdown(tasksContent);
-      
+
       const message = JSON.stringify({
         type: 'task-status-update',
         data: {
@@ -770,7 +857,7 @@ export class DashboardServer {
       console.error('Using existing dashboard instance - not stopping it');
       return;
     }
-    
+
     // Close all WebSocket connections with proper cleanup
     this.clients.forEach((client) => {
       try {
